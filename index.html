@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon App Éducative Dynamique - Gemini</title>
+    <style>
+        :root {
+            --primary-color: #3f51b5;
+            --secondary-color: #ffc107;
+            --background-color: #f4f4f9;
+            --text-color: #333;
+            --success-color: #4CAF50;
+            --error-color: #f44336;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .app-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 700px;
+            padding: 20px;
+            min-height: 80vh;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+        }
+
+        /* --- Global Form/Button Styling --- */
+        label, select, button {
+            display: block;
+            margin-bottom: 15px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        #generate-btn {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        #generate-btn:hover {
+            background-color: #303f9f;
+        }
+
+        .back-btn {
+            background-color: #ccc;
+            color: var(--text-color);
+            margin-top: 20px;
+        }
+        
+        #show-progress-btn {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+        }
+
+        /* Styles pour les cases à cocher */
+        .checkbox-group {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .checkbox-group label {
+            display: inline-block;
+            width: auto;
+            margin-right: 15px;
+            margin-bottom: 5px;
+            font-weight: normal;
+        }
+
+        /* --- Exercice Styling (inchangé) --- */
+        .exercise-item {
+            background-color: #e8eaf6;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border-left: 5px solid var(--secondary-color);
+        }
+
+        .exercise-item p {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        .fill-in-blank {
+            padding: 5px;
+            width: 150px;
+            border: 1px dashed var(--primary-color);
+            border-radius: 3px;
+        }
+
+        .options-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .options-list li {
+            margin: 5px 0;
+        }
+
+        /* Styles pour Remettre en Ordre (inchangé) */
+        .reorder-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .reorder-list {
+            list-style: none;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            border-radius: 5px;
+        }
+
+        .reorder-list-available {
+            border: 1px solid #ddd;
+            background-color: #f8f8f8;
+            min-height: 50px;
+        }
+
+        .reorder-list-answer {
+            border: 2px dashed var(--primary-color);
+            background-color: #fff;
+            min-height: 50px;
+        }
+
+        .reorder-item {
+            padding: 8px 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            user-select: none;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+        
+        .reorder-item.available {
+             background: #f1f8e9; /* Vert clair */
+        }
+
+        .reorder-item.selected {
+             background: var(--secondary-color); /* Jaune pour les mots sélectionnés */
+        }
+
+        /* --- Feedback/Results (inchangé) --- */
+        #result-display {
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .result-success { background-color: #dcedc8; color: var(--success-color); }
+        .result-error { background-color: #ffcdd2; color: var(--error-color); }
+
+        .progress-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .progress-table th, .progress-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .progress-table th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        /* Conteneur de boutons sur l'écran de résultats */
+        .results-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .results-actions button {
+            width: 48%; /* Réduire la largeur pour faire tenir plusieurs boutons */
+        }
+
+        /* Utility classes */
+        .hidden { display: none; }
+
+
+        /* ======================================================= */
+        /* === RESPONSIVE DESIGN (Media Queries) === */
+        /* ======================================================= */
+
+        /* Styles pour les petits écrans (téléphones, max 600px) */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            .app-container {
+                min-height: 95vh;
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            h2 {
+                font-size: 1.3em;
+            }
+
+            /* Réduit la taille des champs d'entrée dans les phrases */
+            .fill-in-blank {
+                width: 100px;
+            }
+
+            /* Assure que les boutons de résultats prennent toute la largeur */
+            .results-actions button {
+                width: 100%;
+            }
+
+            /* Assure que les listes de réordonnancement sont lisibles */
+             .reorder-list {
+                padding: 5px;
+            }
+             .reorder-item {
+                padding: 6px 12px;
+                font-size: 0.9em;
+            }
+
+            /* Réduit la taille de la police dans le tableau de progression */
+            .progress-table th, .progress-table td {
+                font-size: 0.8em;
+                padding: 6px;
+            }
+        }
+
+        /* Styles pour les très petits écrans (ajustement final) */
+        @media (max-width: 350px) {
+            /* S'assurer que les cases à cocher de conjugaison ne débordent pas */
+            .checkbox-group label {
+                margin-right: 10px;
+                display: block; /* Force chaque option sur sa propre ligne si trop petit */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <h1>Mon App Éducative 🚀</h1>
+
+        <div id="selection-screen">
+            <h2>Sélectionner le Thème et le Type d'Exercice</h2>
+            <form id="selection-form">
+                <label for="language">Choisir la Langue :</label>
+                <select id="language" required>
+                    <option value="" disabled selected>-- Choisir une langue --</option>
+                    <option value="Français">Français</option>
+                    <option value="English">English (À implémenter)</option>
+                </select>
+
+                <label for="theme">Choisir le Thème :</label>
+                <select id="theme" required>
+                    <option value="" disabled selected>-- Choisir un thème --</option>
+                    </select>
+
+                <div id="subtype-selection">
+                    <label for="subtype">Choisir le Sous-thème :</label>
+                    <select id="subtype" required>
+                        <option value="" disabled selected>-- Choisir un sous-thème --</option>
+                    </select>
+                </div>
+                
+                <label for="exercise-type">Choisir le Type d'Exercice :</label>
+                <select id="exercise-type" required>
+                    <option value="" disabled selected>-- Choisir le type --</option>
+                    <option value="remplir_les_blancs">Compléter la phrase</option>
+                    <option value="choix_multiple">Choisir dans une liste déroulante</option>
+                    <option value="vrai_faux">Vrai/Faux</option>
+                    <option value="remettre_en_ordre">Mettre en ordre</option>
+                </select>
+
+                <button type="submit" id="generate-btn">Générer les Exercices</button>
+            </form>
+            
+            <button id="show-progress-btn">Voir ma Progression (Local Storage) 💾</button>
+        </div>
+
+        <div id="exercise-screen" class="hidden">
+            <h2 id="exercise-title">Exercices de [Thème]</h2>
+            <p>Temps écoulé : <span id="timer">0s</span></p>
+            <form id="exercise-form">
+                <div id="exercises-container">
+                    </div>
+                <button type="submit">Soumettre et Corriger</button>
+            </form>
+            <button class="back-btn" onclick="showScreen('selection-screen')">Retour à la Sélection</button>
+        </div>
+
+        <div id="results-screen" class="hidden">
+            <h2>Résultats de la Session 📝</h2>
+            <div id="result-display"></div>
+            <p>Score : <span id="final-score"></span></p>
+            <p>Temps : <span id="final-time"></span></p>
+            <h3>Détail des Réponses</h3>
+            <div id="correction-details"></div>
+            
+            <div class="results-actions">
+                <button id="repeat-exercise-btn" class="back-btn hidden">Répéter l'exercice 🔄</button>
+                <button id="new-session-btn" class="back-btn hidden" onclick="showScreen('selection-screen')">Nouvelle Session 🏠</button>
+                <button id="results-to-progress-btn" class="back-btn">Voir ma Progression 📈</button>
+            </div>
+        </div>
+
+        <div id="progress-screen" class="hidden">
+            <h2>Historique de la Progression 📈</h2>
+            <div id="progress-container">
+                <p>Aucune session enregistrée.</p>
+            </div>
+            <button class="back-btn" onclick="showScreen('selection-screen')">Retour à l'Accueil</button>
+        </div>
+    </div>
+
+    <script>
+        // ----------------------------------------------------------------------
+        // 1. CONFIGURATION & DONNÉES
+        // ----------------------------------------------------------------------
+
+        // !!! CLÉ API GEMINI MISE À JOUR : AIzaSyDS7N_Nr08_s2grrjenQuUUCuyHUcKqXo4 !!!
+        const GEMINI_API_KEY = 'AIzaSyCr7pyNEZQ_7-8IfcFDKPs1AHyOURG-Jvk';
+        const GEMINI_MODEL = 'gemini-2.5-flash';
+        const STORAGE_KEY = 'eleve_progression';
+
+        // Nouvelle liste prioritaire des verbes (utilisée dans le prompt)
+        const VERBES_PRIORITAIRES = [
+            "être", "avoir", "marcher", "manger", "commencer", "appeler", 
+            "acheter", "envoyer", "nettoyer", "aller", "courir", "voir", 
+            "lire", "se promener", "réussir", "savoir", "vouloir", "pouvoir", 
+            "écrire", "partir", "vivre", "venir", "rendre", "mettre", "faire", "dire"
+        ];
+        
+        // Mise à jour de la structure des thèmes (Impératif remplacé par Impératif)
+        const THEMES = {
+            "Français": {
+                "Conjugaison": {
+                    groups: ["1er groupe", "2e groupe", "3e groupe"],
+                    tenses: ["Présent", "Futur simple", "Passé composé", "Impératif"]
+                },
+                "Grammaire": [
+                    "Les accords sujet-verbe",
+                    "Les adjectifs qualificatifs"
+                ]
+            }
+        };
+
+        let currentExercises = [];
+        let startTime;
+        let timerInterval;
+
+        // ----------------------------------------------------------------------
+        // 2. LOGIQUE D'AFFICHAGE ET DE NAVIGATION
+        // ----------------------------------------------------------------------
+
+        /** Affiche l'écran demandé et cache les autres. */
+        function showScreen(screenId) {
+            document.querySelectorAll('.app-container > div').forEach(div => {
+                div.classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+
+            if (screenId === 'progress-screen') {
+                displayProgress();
+            } else if (screenId === 'selection-screen') {
+                clearInterval(timerInterval); 
+            }
+        }
+
+        // ----------------------------------------------------------------------
+        // 3. GESTION DES SÉLECTIONS DE THÈME (Inchangé)
+        // ----------------------------------------------------------------------
+
+        const languageSelect = document.getElementById('language');
+        const themeSelect = document.getElementById('theme');
+        const subtypeSelectionDiv = document.getElementById('subtype-selection');
+        const repeatExerciseBtn = document.getElementById('repeat-exercise-btn');
+        const newSessionBtn = document.getElementById('new-session-btn');
+
+
+        /** Remplit les thèmes basés sur la langue sélectionnée. */
+        languageSelect.addEventListener('change', () => {
+            // Réinitialisation des thèmes
+            themeSelect.innerHTML = '<option value="" disabled selected>-- Choisir un thème --</option>';
+            const lang = languageSelect.value;
+            const themes = THEMES[lang] || {};
+
+            for (const theme in themes) {
+                const option = new Option(theme, theme);
+                themeSelect.add(option);
+            }
+            // Cache la zone de sélection spécifique tant qu'un thème n'est pas choisi
+            renderSubtypeSelection(); 
+        });
+
+        /** Gère l'affichage dynamique de la sélection de sous-thème (menu déroulant ou cases à cocher). */
+        themeSelect.addEventListener('change', () => {
+            renderSubtypeSelection(themeSelect.value);
+        });
+
+        /** Construit l'UI pour la sélection de sous-thème (cases à cocher ou menu déroulant). */
+        function renderSubtypeSelection(selectedTheme) {
+            subtypeSelectionDiv.innerHTML = '';
+            const lang = languageSelect.value;
+
+            if (selectedTheme === 'Conjugaison') {
+                const conjugationData = THEMES[lang][selectedTheme];
+                
+                // 1. Groupes de Verbes
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'checkbox-group';
+                groupDiv.innerHTML = '<strong>Choisir les groupes de verbes (min. 1) :</strong>';
+                conjugationData.groups.forEach(group => {
+                    groupDiv.innerHTML += `<label><input type="checkbox" name="verb-group" value="${group}"> ${group}</label>`;
+                });
+                subtypeSelectionDiv.appendChild(groupDiv);
+
+                // 2. Temps de Conjugaison
+                const tenseDiv = document.createElement('div');
+                tenseDiv.className = 'checkbox-group';
+                tenseDiv.innerHTML = '<strong>Choisir les temps (min. 1) :</strong>';
+                conjugationData.tenses.forEach(tense => {
+                    tenseDiv.innerHTML += `<label><input type="checkbox" name="verb-tense" value="${tense}"> ${tense}</label>`;
+                });
+                subtypeSelectionDiv.appendChild(tenseDiv);
+                
+            } else if (THEMES[lang] && Array.isArray(THEMES[lang][selectedTheme])) {
+                // Affiche le sélecteur standard pour les autres thèmes (e.g., Grammaire)
+                const subtypes = THEMES[lang][selectedTheme];
+                const label = document.createElement('label');
+                label.htmlFor = 'subtype';
+                label.textContent = 'Choisir le Sous-thème :';
+                
+                const select = document.createElement('select');
+                select.id = 'subtype';
+                select.required = true;
+                select.innerHTML = '<option value="" disabled selected>-- Choisir un sous-thème --</option>';
+
+                subtypes.forEach(subtype => {
+                    const option = new Option(subtype, subtype);
+                    select.add(option);
+                });
+
+                subtypeSelectionDiv.appendChild(label);
+                subtypeSelectionDiv.appendChild(select);
+            }
+        }
+        
+        /** Récupère les sélections de conjugaison. */
+        function getConjugationSelections() {
+            const groups = Array.from(document.querySelectorAll('input[name="verb-group"]:checked')).map(cb => cb.value);
+            const tenses = Array.from(document.querySelectorAll('input[name="verb-tense"]:checked')).map(cb => cb.value);
+            
+            return { groups, tenses };
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            showScreen('selection-screen');
+            document.getElementById('results-to-progress-btn').addEventListener('click', () => {
+                showScreen('progress-screen');
+            });
+            repeatExerciseBtn.addEventListener('click', () => {
+                // Mélanger les questions avant de les répéter
+                const shuffledExercises = shuffleArray([...currentExercises]);
+                renderExercises(shuffledExercises);
+                showScreen('exercise-screen');
+                startTimer();
+            });
+            // Initialisation de la zone de sélection
+            renderSubtypeSelection(); 
+        });
+
+        // ----------------------------------------------------------------------
+        // 4. APPEL À L'API GEMINI (Fonction Critique) (Inchangé)
+        // ----------------------------------------------------------------------
+
+        document.getElementById('selection-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const language = languageSelect.value;
+            const theme = themeSelect.value;
+            const exerciseType = document.getElementById('exercise-type').value;
+
+            let selectedThemeDetail;
+
+            if (theme === 'Conjugaison') {
+                const { groups, tenses } = getConjugationSelections();
+                
+                if (groups.length === 0 || tenses.length === 0) {
+                    alert("Veuillez choisir au moins un groupe de verbe et au moins un temps.");
+                    return;
+                }
+                
+                // Détail formaté pour le titre et le prompt
+                selectedThemeDetail = `${theme} (Groupes: ${groups.join(', ')}; Temps: ${tenses.join(', ')})`;
+                
+            } else {
+                const subtype = document.getElementById('subtype') ? document.getElementById('subtype').value : '';
+                if (!language || !theme || !subtype || !exerciseType) {
+                    alert("Veuillez remplir tous les champs de sélection.");
+                    return;
+                }
+                selectedThemeDetail = `${theme} - ${subtype}`;
+            }
+
+            document.getElementById('generate-btn').textContent = 'Génération en cours... ⏳';
+            document.getElementById('generate-btn').disabled = true;
+
+            document.getElementById('exercise-title').textContent = `Exercices de ${selectedThemeDetail}`;
+
+            try {
+                const exercises = await generateExercises(language, selectedThemeDetail, exerciseType);
+                currentExercises = exercises;
+                renderExercises(exercises);
+                showScreen('exercise-screen');
+                startTimer();
+            } catch (error) {
+                console.error("Erreur lors de la génération :", error);
+                alert(`Erreur lors de la génération des exercices : ${error.message}. Utilisation des données de simulation.`);
+                
+                // En cas d'échec de l'API, on retombe sur la simulation
+                const exercises = simulateGeminiResponse(exerciseType);
+                currentExercises = exercises;
+                renderExercises(exercises);
+                showScreen('exercise-screen');
+                startTimer();
+
+            } finally {
+                document.getElementById('generate-btn').textContent = 'Générer les Exercices';
+                document.getElementById('generate-btn').disabled = false;
+            }
+        });
+
+        /** * Construit l'invite (prompt) et appelle l'API Gemini.
+         */
+        async function generateExercises(language, themeDetail, exerciseType) {
+            const numExercises = 5;
+            const promptTemplate = {
+                remplir_les_blancs: "Génère 5 phrases. Pour chaque espace vide (%BLANK%), insère le mot ou le verbe de base (infinitif ou non accordé) entre parenthèses **juste avant** l'espace pour servir d'indice. Exemple: (verbe) %BLANK%",
+                choix_multiple: "Génère 5 questions sous forme d'énoncé, chacune avec 3 à 4 options de réponse (dont une seule est correcte).",
+                vrai_faux: "Génère 5 affirmations claires, dont certaines sont vraies et d'autres sont fausses, pour tester la règle.",
+                remettre_en_ordre: "Génère 5 phrases mélangées. Fournis la phrase complète correcte comme 'ordre_correct'."
+            };
+            
+            // Logique de priorité des verbes pour Gemini
+            let verbPriorityInstruction = "";
+            if (themeDetail.startsWith("Conjugaison")) {
+                const { groups, tenses } = getConjugationSelections();
+                const groupsList = groups.join(', ');
+                const tensesList = tenses.join(', ');
+                const prioritizedVerbs = VERBES_PRIORITAIRES.join(', ');
+                
+                verbPriorityInstruction = `
+                **Règle de sélection des verbes pour la Conjugaison (Groupes: ${groupsList}; Temps: ${tensesList}) :**
+                1. Donne la priorité absolue aux verbes suivants pour former les exercices : [${prioritizedVerbs}].
+                2. S'il n'y a pas assez de verbes du groupe ou temps sélectionné(s) dans cette liste pour les ${numExercises} exercices, utilise les verbes les plus courants du français pour compléter le nombre requis.
+                3. Assure-toi que les verbes choisis correspondent aux groupes et temps sélectionnés.
+                `;
+            }
+
+
+            const instructionPrompt = `
+                Tu es un générateur d'exercices éducatifs.
+                Thème ciblé : "${themeDetail}" en ${language}.
+                Type d'exercice : "${exerciseType}".
+                Nombre : ${numExercises} exercices.
+                Instruction spécifique : ${promptTemplate[exerciseType]}
+
+                ${verbPriorityInstruction}
+
+                Le format de sortie doit être un tableau JSON STRICT, et seulement le JSON, qui doit être parsable directement par JavaScript et correspondre au schéma que je vais te donner.
+                Assure-toi de mettre les réponses correctes (reponses_correctes, reponse_correcte, ordre_correct) en minuscules pour faciliter la correction de l'application.
+            `;
+
+            if (GEMINI_API_KEY.length < 30) {
+                throw new Error("Clé API manquante ou invalide.");
+            }
+
+            const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+            
+            const response = await fetch(apiEndpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ role: "user", parts: [{ text: instructionPrompt }] }],
+                    generationConfig: { 
+                        responseMimeType: "application/json",
+                        responseSchema: getJsonSchema(exerciseType) 
+                    }
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Échec de l'appel API: ${response.status} - ${errorData.error.message}`);
+            }
+
+            const data = await response.json();
+            const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (!jsonText) {
+                throw new Error("La réponse de l'API était vide ou mal formée.");
+            }
+            
+            // L'API peut parfois ajouter des balises de code JSON. On les retire.
+            const cleanedJsonText = jsonText.replace(/^```json\s*|s*```$/g, '').trim();
+            
+            return JSON.parse(cleanedJsonText);
+        }
+
+        // ----------------------------------------------------------------------
+        // 5. RENDU DES EXERCICES (UI) (Inchangé)
+        // ----------------------------------------------------------------------
+
+        /** Construit les éléments HTML interactifs basés sur le JSON reçu. */
+        function renderExercises(exercises) {
+            const container = document.getElementById('exercises-container');
+            container.innerHTML = '';
+
+            exercises.forEach((ex, index) => {
+                const item = document.createElement('div');
+                item.className = 'exercise-item';
+                item.dataset.id = ex.id_exercice;
+
+                const instructionP = document.createElement('p');
+                instructionP.innerHTML = `**Exercice ${index + 1} :** ${ex.instruction}`;
+                item.appendChild(instructionP);
+
+                switch (ex.type_exercice) {
+                    case 'remplir_les_blancs':
+                        renderFillInTheBlanks(item, ex);
+                        break;
+                    case 'choix_multiple':
+                    case 'vrai_faux':
+                        renderMultipleChoice(item, ex);
+                        break;
+                    case 'remettre_en_ordre':
+                        renderReorder(item, ex);
+                        break;
+                }
+                container.appendChild(item);
+            });
+        }
+
+        function renderFillInTheBlanks(item, ex) {
+            const parts = ex.question.texte_a_completer.split('%BLANK%');
+            const sentence = document.createElement('p');
+            sentence.style.fontWeight = 'normal';
+
+            parts.forEach((part, i) => {
+                sentence.appendChild(document.createTextNode(part));
+                if (i < ex.question.reponses_correctes.length) { // Utiliser la longueur des réponses pour le nombre d'inputs
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'fill-in-blank';
+                    input.name = `ex-${ex.id_exercice}-blank-${i}`;
+                    input.placeholder = '...';
+                    sentence.appendChild(input);
+                }
+            });
+            item.appendChild(sentence);
+        }
+
+        function renderMultipleChoice(item, ex) {
+            const enonce = document.createElement('p');
+            enonce.textContent = ex.question.enonce;
+            item.appendChild(enonce);
+
+            const ul = document.createElement('ul');
+            ul.className = 'options-list';
+            const options = ex.question.options;
+
+            options.forEach((option, i) => {
+                const li = document.createElement('li');
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = `ex-${ex.id_exercice}-choice`;
+                radio.value = option; // La valeur est l'option elle-même
+                radio.id = `ex-${ex.id_exercice}-${i}`;
+
+                const label = document.createElement('label');
+                label.htmlFor = radio.id;
+                label.textContent = option;
+
+                li.appendChild(radio);
+                li.appendChild(label);
+                ul.appendChild(li);
+            });
+            item.appendChild(ul);
+        }
+        
+        function renderReorder(item, ex) {
+            const enonce = document.createElement('p');
+            enonce.textContent = ex.question.enonce; // Affiche l'énoncé spécifique de l'exercice
+            item.appendChild(enonce);
+
+            // Conteneur principal pour les deux listes
+            const reorderContainer = document.createElement('div');
+            reorderContainer.className = 'reorder-container';
+
+            // 1. Zone de mots disponibles (Suggestions)
+            const availableContainer = document.createElement('div');
+            availableContainer.innerHTML = '<h4>Mots disponibles (cliquez pour ajouter) :</h4>';
+            
+            const availableUl = document.createElement('ul');
+            availableUl.className = 'reorder-list reorder-list-available';
+            
+            // 2. Zone de réponse (Panier)
+            const answerContainer = document.createElement('div');
+            answerContainer.innerHTML = '<h4>Votre réponse (cliquez pour retirer) :</h4>';
+
+            const answerUl = document.createElement('ul');
+            answerUl.className = 'reorder-list reorder-list-answer';
+            
+            availableContainer.appendChild(availableUl);
+            answerContainer.appendChild(answerUl);
+
+            reorderContainer.appendChild(availableContainer);
+            reorderContainer.appendChild(answerContainer);
+            item.appendChild(reorderContainer);
+
+            // 3. Initialisation de la logique d'interaction
+            setupReorderLogic(ex.id_exercice, ex.question.elements_desordonnes, availableUl, answerUl);
+        }
+        
+        // CORRECTION DE LA LOGIQUE DE DÉPLACEMENT : utilisation des références directes
+        function setupReorderLogic(exerciseId, elements, availableUl, answerUl) {
+            // Remplir la liste des mots disponibles
+            elements.forEach((word) => {
+                const li = document.createElement('li');
+                li.className = 'reorder-item available'; // Classe par défaut
+                li.textContent = word;
+                li.dataset.word = word; // Stocke la valeur du mot
+                li.dataset.area = 'available'; // Indique où se trouve l'élément
+                // L'événement clique appelle moveWord en passant l'élément et les conteneurs
+                li.addEventListener('click', () => moveWord(li, availableUl, answerUl));
+                availableUl.appendChild(li);
+            });
+        }
+        
+        // CORRECTION DE moveWord: reçoit les deux conteneurs pour référence
+        function moveWord(wordLi, availableUl, answerUl) {
+            const currentArea = wordLi.dataset.area;
+
+            if (currentArea === 'available') {
+                // Déplacer de la zone disponible vers la zone de réponse
+                answerUl.appendChild(wordLi);
+                wordLi.dataset.area = 'answer';
+                wordLi.classList.remove('available');
+                wordLi.classList.add('selected');
+            } else {
+                // Déplacer de la zone de réponse vers la zone disponible
+                availableUl.appendChild(wordLi);
+                wordLi.dataset.area = 'available';
+                wordLi.classList.remove('selected');
+                wordLi.classList.add('available');
+            }
+        }
+
+        // ----------------------------------------------------------------------
+        // 6. SOUMISSION ET CORRECTION (CORRECTION DU FLUX DE LA REFERENCE ERROR)
+        // ----------------------------------------------------------------------
+
+        document.getElementById('exercise-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const form = e.target;
+            let score = 0;
+            const totalQuestions = currentExercises.length;
+            const sessionDetails = [];
+
+            // 1. Définir le temps avant la correction
+            const finalTime = stopTimer();
+
+            currentExercises.forEach(ex => {
+                let isCorrect = false;
+                let studentAnswer = '';
+                let expectedAnswer = '';
+                let questionText = ex.instruction;
+
+                switch (ex.type_exercice) {
+                    case 'remplir_les_blancs':
+                        const blankInputs = Array.from(form.querySelectorAll(`input[name^="ex-${ex.id_exercice}-blank-"]`));
+                        const studentAnswers = blankInputs.map(input => input.value.trim().toLowerCase());
+                        expectedAnswer = ex.question.reponses_correctes.map(r => r.trim().toLowerCase());
+                        
+                        // Vérifie si TOUTES les réponses sont correctes
+                        isCorrect = studentAnswers.length === expectedAnswer.length && 
+                                    studentAnswers.every((ans, i) => ans === expectedAnswer[i]);
+                                    
+                        studentAnswer = studentAnswers.join(', ');
+                        expectedAnswer = expectedAnswer.join(', ');
+                        questionText += ' | Phrase: ' + ex.question.texte_a_completer.replace(/%BLANK%/g, '___');
+                        break;
+
+                    case 'choix_multiple':
+                    case 'vrai_faux':
+                        const radio = form.querySelector(`input[name="ex-${ex.id_exercice}-choice"]:checked`);
+                        studentAnswer = radio ? radio.value.trim().toLowerCase() : '';
+                        expectedAnswer = ex.question.reponse_correcte.trim().toLowerCase();
+                        isCorrect = (studentAnswer === expectedAnswer);
+                        questionText += ' | Énoncé: ' + ex.question.enonce;
+                        break;
+
+                    case 'remettre_en_ordre':
+                        const exerciseItem = form.querySelector(`.exercise-item[data-id="${ex.id_exercice}"]`);
+                        const answerArea = exerciseItem.querySelector('.reorder-list-answer');
+
+                        const studentWords = Array.from(answerArea.querySelectorAll('.reorder-item')).map(li => li.dataset.word.trim().toLowerCase());
+
+                        studentAnswer = studentWords.join(', ');
+                        
+                        expectedAnswer = ex.question.ordre_correct.map(w => w.trim().toLowerCase()).join(',');
+                        const correctedStudentAnswer = studentWords.join(',');
+
+                        isCorrect = (correctedStudentAnswer === expectedAnswer);
+                        questionText += ' | Éléments: ' + ex.question.elements_desordonnes.join(', ');
+                        
+                        expectedAnswer = expectedAnswer.replace(/,/g, ', '); 
+                        break;
+                }
+
+                if (isCorrect) {
+                    score++;
+                }
+
+                // Enregistrement des détails de la session
+                sessionDetails.push({
+                    question_id: ex.id_exercice,
+                    type_exercice: ex.type_exercice,
+                    enonce_utilise: questionText,
+                    reponse_eleve: studentAnswer,
+                    reponse_attendue: expectedAnswer,
+                    est_correct: isCorrect
+                });
+            });
+
+            // 2. Appeler les fonctions dans le bon ordre
+            displayResults(score, totalQuestions, finalTime, sessionDetails);
+            saveProgress(score, totalQuestions, finalTime, sessionDetails);
+            showScreen('results-screen');
+        });
+
+        // ----------------------------------------------------------------------
+        // 7. GESTION DU LOCAL STORAGE & AFFICHAGE DES RÉSULTATS (Modifié)
+        // ----------------------------------------------------------------------
+
+        /** Sauvegarde les détails de la session dans le Local Storage. */
+        function saveProgress(score, total, time, details) {
+            const progressData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            
+            const newSession = {
+                id_session: Date.now().toString(),
+                date_heure: new Date().toISOString(),
+                langue: languageSelect.value,
+                // Utilise themeDetail stocké temporairement
+                theme_detaille: document.getElementById('exercise-title').textContent.replace('Exercices de ', ''),
+                score_final: `${score}/${total}`,
+                temps_passe_secondes: time,
+                details_questions: details
+            };
+
+            progressData.unshift(newSession); // Ajoute au début
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(progressData));
+        }
+
+        /** Affiche les résultats sur l'écran des résultats. */
+        function displayResults(score, total, time, details) {
+            document.getElementById('final-score').textContent = `${score}/${total}`;
+            document.getElementById('final-time').textContent = `${time} secondes`;
+
+            const resultDisplay = document.getElementById('result-display');
+            const correctionDetails = document.getElementById('correction-details');
+            const isPerfect = (score === total);
+            
+            correctionDetails.innerHTML = '';
+            
+            // LOGIQUE D'AFFICHAGE DES BOUTONS
+            newSessionBtn.classList.add('hidden');
+            repeatExerciseBtn.classList.add('hidden');
+
+            if (isPerfect) {
+                resultDisplay.className = 'result-success';
+                resultDisplay.textContent = "Félicitations ! 100% de réussite ! 🎉";
+                newSessionBtn.classList.remove('hidden');
+            } else {
+                resultDisplay.className = 'result-error';
+                resultDisplay.textContent = `Bon effort ! Revoyons les ${total - score} erreurs pour atteindre la perfection. 💪`;
+                repeatExerciseBtn.classList.remove('hidden');
+                newSessionBtn.classList.add('hidden'); // Cacher Nouvelle Session si score < 100%
+            }
+
+            // LOGIQUE D'AFFICHAGE DES DÉTAILS
+            details.forEach((detail, index) => {
+                const p = document.createElement('p');
+                p.style.backgroundColor = detail.est_correct ? '#e8f5e9' : '#fbe9e7';
+                p.style.padding = '10px';
+                p.style.borderLeft = detail.est_correct ? '3px solid var(--success-color)' : '3px solid var(--error-color)';
+                
+                const enonceCourt = detail.enonce_utilise.substring(0, 100) + (detail.enonce_utilise.length > 100 ? '...' : '');
+                
+                let expectedText = "";
+                if (detail.est_correct) {
+                    // Affiche la réponse correcte si l'élève a juste
+                    expectedText = `Réponse attendue : <strong>${detail.reponse_attendue}</strong>`;
+                } else if (isPerfect) {
+                    // Ce cas ne devrait jamais arriver si isPerfect est vrai, mais par sécurité
+                    expectedText = `Réponse attendue : <strong>${detail.reponse_attendue}</strong>`;
+                } else {
+                    // Si faux et score < 100%, ne pas donner la réponse
+                    expectedText = `Réponse attendue : *Indice masqué (Répétez l'exercice)*`;
+                }
+
+
+                p.innerHTML = `
+                    <strong>Q${index + 1} (${detail.est_correct ? '✅ Correct' : '❌ Faux'}) :</strong> ${enonceCourt}<br>
+                    Réponse de l'élève : <em>${detail.reponse_eleve || 'Non répondu'}</em><br>
+                    ${expectedText}
+                `;
+                correctionDetails.appendChild(p);
+            });
+        }
+
+        /** Affiche l'historique de progression. */
+        function displayProgress() {
+            const container = document.getElementById('progress-container');
+            const progressData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            
+            if (progressData.length === 0) {
+                container.innerHTML = '<p>Aucune session enregistrée.</p>';
+                return;
+            }
+
+            let html = '<table class="progress-table"><thead><tr><th>Date</th><th>Thème</th><th>Score</th><th>Temps</th></tr></thead><tbody>';
+            
+            progressData.forEach(session => {
+                const date = new Date(session.date_heure).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+                html += `
+                    <tr>
+                        <td>${date}</td>
+                        <td>${session.theme_detaille}</td>
+                        <td>${session.score_final}</td>
+                        <td>${session.temps_passe_secondes}s</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        document.getElementById('show-progress-btn').addEventListener('click', () => {
+            showScreen('progress-screen');
+        });
+
+        // ----------------------------------------------------------------------
+        // 8. MINUTEUR (Timer) (Inchangé)
+        // ----------------------------------------------------------------------
+
+        function startTimer() {
+            startTime = Date.now();
+            const timerElement = document.getElementById('timer');
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                timerElement.textContent = `${elapsed}s`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            const finalTime = Math.floor((Date.now() - startTime) / 1000);
+            return finalTime;
+        }
+
+        // ----------------------------------------------------------------------
+        // 9. SIMULATION ET SCHÉMAS (Inchangé)
+        // ----------------------------------------------------------------------
+        
+        /** Fonction utilitaire pour mélanger un tableau (Fisher-Yates) */
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        /** Simule la réponse JSON de Gemini pour le test initial sans API. */
+        function simulateGeminiResponse(type) {
+            const baseEx = (id, inst, q) => ({
+                id_exercice: id,
+                type_exercice: type,
+                instruction: inst,
+                question: q
+            });
+
+            if (type === 'remplir_les_blancs') {
+                return [
+                    // Simulation pour la conjugaison : voir, venir
+                    baseEx(1, "Complétez les phrases avec la forme correcte du verbe au présent.", {
+                        texte_a_completer: "Nous (voir) %BLANK% le match à la télévision.",
+                        reponses_correctes: ["voyons"]
+                    }),
+                    baseEx(2, "Complétez la phrase avec la forme correcte du verbe au présent.", {
+                        texte_a_completer: "Tu (venir) %BLANK% avec nous si tu veux.",
+                        reponses_correctes: ["viens"]
+                    }),
+                    // Simulation pour la grammaire : magnifique (accord)
+                    baseEx(3, "Complétez la phrase en accordant l'adjectif.", {
+                        texte_a_completer: "Les fleurs étaient (magnifique) %BLANK% .",
+                        reponses_correctes: ["magnifiques"]
+                    }),
+                    baseEx(4, "Conjuguez 'prendre' au présent pour 'vous'.", {
+                        texte_a_completer: "Vous (prendre) %BLANK% le bus.",
+                        reponses_correctes: ["prenez"]
+                    }),
+                    baseEx(5, "Complétez les deux blancs : conjuguez 'savoir' au présent et 'faire' au futur.",
+                         {
+                        texte_a_completer: "Je (savoir) %BLANK% qu'il (faire) %BLANK% beau.",
+                        reponses_correctes: ["sais", "fera"]
+                    })
+                ];
+            } else if (type === 'vrai_faux') {
+                return [
+                    baseEx(1, "Vrai ou Faux : Le verbe 'faire' appartient au 2e groupe.", {
+                        enonce: "Le verbe 'faire' appartient au 2e groupe.",
+                        options: ["Vrai", "Faux"],
+                        reponse_correcte: "faux"
+                    }),
+                    baseEx(2, "Vrai ou Faux : L'accord sujet-verbe se fait toujours au pluriel.",
+                         {
+                        enonce: "L'accord sujet-verbe se fait toujours au pluriel.",
+                        options: ["Vrai", "Faux"],
+                        reponse_correcte: "faux"
+                    }),
+                    baseEx(3, "Vrai ou Faux : 'Vous irez' est la conjugaison correcte de 'aller' au futur simple pour 'vous'.", {
+                        enonce: "'Vous irez' est la conjugaison correcte de 'aller' au futur simple pour 'vous'.",
+                        options: ["Vrai", "Faux"],
+                        reponse_correcte: "vrai"
+                    }),
+                    baseEx(4, "Vrai ou Faux : L'accord de l'adjectif qualificatif se fait en genre et en nombre avec le nom qu'il qualifie.", {
+                        enonce: "L'accord de l'adjectif qualificatif se fait en genre et en nombre avec le nom qu'il qualifie.",
+                        options: ["Vrai", "Faux"],
+                        reponse_correcte: "vrai"
+                    }),
+                    baseEx(5, "Vrai ou Faux : La terminaison du passé simple 2e groupe est en -ais, -ais, -ait, etc.", {
+                        enonce: "La terminaison du passé simple 2e groupe est en -ais, -ais, -ait, etc.",
+                        options: ["Vrai", "Faux"],
+                        reponse_correcte: "faux"
+                    })
+                ];
+            } else if (type === 'choix_multiple') {
+                 return [
+                    baseEx(1, "Choisissez la bonne conjugaison de 'prendre' au présent pour 'elles'.", {
+                        enonce: "Elles (prendre) le train.",
+                        options: ["prennent", "prenons", "prends", "prendent"],
+                        reponse_correcte: "prennent"
+                    }),
+                    baseEx(2, "Choisissez l'accord correct pour 'Les souris (petit)'.", {
+                        enonce: "Les souris sont (petit).",
+                        options: ["petit", "petites", "petits"],
+                        reponse_correcte: "petites"
+                    }),
+                    baseEx(3, "Quel est l'infinitif du verbe 'durent' (passé simple 2e groupe) ?", {
+                        enonce: "Quel est l'infinitif du verbe 'durent' ?",
+                        options: ["durer", "dire", "nuire"],
+                        reponse_correcte: "dire"
+                    }),
+                    baseEx(4, "Choisissez la forme correcte de l'adjectif pour 'une histoire (passionnant)'.", {
+                        enonce: "C'était une histoire (passionnant).",
+                        options: ["passionnant", "passionnante", "passionnants"],
+                        reponse_correcte: "passionnante"
+                    }),
+                    baseEx(5, "Quelle est la bonne conjugaison pour 'Je (venir) au futur simple' ?",
+                        {
+                        enonce: "Je (venir) au futur simple.",
+                        options: ["je viens", "je viendrai", "j'irais"],
+                        reponse_correcte: "je viendrai"
+                    })
+                ];
+            } else if (type === 'remettre_en_ordre') {
+                 return [
+                    baseEx(1, "Remettez les mots dans l'ordre pour former une phrase correcte.", {
+                        enonce: "Former une phrase simple au présent.",
+                        elements_desordonnes: ["mange", "chat", "souris", "le", "une"],
+                        ordre_correct: ["le", "chat", "mange", "une", "souris"] 
+                    }),
+                    baseEx(2, "Remettez les mots dans l'ordre.", {
+                        enonce: "Phrase avec un adjectif.",
+                        elements_desordonnes: ["grande", "est", "maison", "la", "très"],
+                        ordre_correct: ["la", "maison", "est", "très", "grande"]
+                    }),
+                    baseEx(3, "Remettez les mots dans l'ordre pour former une phrase conjuguée.", {
+                        enonce: "Phrase au futur simple.",
+                        elements_desordonnes: ["finirons", "nous", "travail", "notre", "demain"],
+                        ordre_correct: ["nous", "finirons", "notre", "travail", "demain"]
+                    }),
+                    baseEx(4, "Remettez les mots dans l'ordre.", {
+                        enonce: "Phrase avec accord sujet-verbe.",
+                        elements_desordonnes: ["enfants", "jouent", "les", "heureux"],
+                        ordre_correct: ["les", "enfants", "jouent", "heureux"]
+                    }),
+                    baseEx(5, "Remettez les mots dans l'ordre.", {
+                        enonce: "Une courte phrase au passé simple.",
+                        elements_desordonnes: ["elle", "vint", "hier"],
+                        ordre_correct: ["elle", "vint", "hier"]
+                    })
+                ];
+            }
+        }
+
+        /** Retourne le schéma JSON pour forcer la structure de la réponse Gemini. */
+        function getJsonSchema(exerciseType) {
+            let questionProperties = {};
+
+            if (exerciseType === 'remplir_les_blancs') {
+                questionProperties = {
+                    "texte_a_completer": {"type": "string", "description": "La phrase à compléter avec le mot/verbe de base (indice) suivi de %BLANK% pour chaque vide. Exemple: (verbe)%BLANK%"},
+                    "reponses_correctes": {"type": "array", "items": {"type": "string"}, "description": "Tableau des mots corrects attendus, dans l'ordre, en minuscules."}
+                };
+            } else if (exerciseType === 'choix_multiple' || exerciseType === 'vrai_faux') {
+                questionProperties = {
+                    "enonce": {"type": "string", "description": "La question ou l'affirmation."},
+                    "options": {"type": "array", "items": {"type": "string"}, "description": "Tableau des options de réponse."},
+                    "reponse_correcte": {"type": "string", "description": "L'option correcte, en minuscules."}
+                };
+            } else if (exerciseType === 'remettre_en_ordre') {
+                questionProperties = {
+                    "elements_desordonnes": {"type": "array", "items": {"type": "string"}, "description": "Tableau des mots ou fragments de phrase dans le désordre."},
+                    "ordre_correct": {"type": "array", "items": {"type": "string"}, "description": "Tableau des mots ou fragments de phrase dans l'ordre correct, en minuscules."}
+                };
+            }
+
+            return {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id_exercice": {"type": "integer"},
+                        "type_exercice": {"type": "string", "enum": [exerciseType]},
+                        "instruction": {"type": "string", "description": "Une courte instruction pour l'exercice."},
+                        "question": {
+                            "type": "object",
+                            "properties": questionProperties,
+                            "required": Object.keys(questionProperties)
+                        }
+                    },
+                    "required": ["id_exercice", "type_exercice", "instruction", "question"]
+                }
+            };
+        }
+    </script>
+</body>
+</html>
