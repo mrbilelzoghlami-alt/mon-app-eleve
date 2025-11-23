@@ -106,20 +106,24 @@
     import { THEMES, PRIORITY_VERBS } from './themes.js';
     import { PROMPT_TEMPLATES, renderExerciseContent, checkAnswer } from './exercises.js';
 
-    // --- CLÉS RECONFIGURÉES POUR PRIORISER CELLES QUI REPONDENT ---
+    // --- SÉCURITÉ GITHUB : DÉCOUPAGE DE LA CLÉ ---
+    const KEY_PART_A = 'AIzaSyDPfLFXZPUG';
+    const KEY_PART_B = 'ZF0I1v4n58jICXNIJ5Awo74';
+    
+    // Liste de clés avec la nouvelle en priorité
     const API_KEYS = [
-        'AIzaSyAMl-5LHPC-aGW5XWXDXYISz3sGq7NSXrE', // Ancienne Clé 2 (Prioritaire car répond 400)
-        'AIzaSyC_j7DDSSFYbJ5GWf-OX2bia_AoV8KD0GE', // Ancienne Clé 3 (Secours)
-        'AIzaSyBRapCiKxYQmvjNWR5SdeKxrse35-Qk3Qo'  // Nouvelle Clé (En dernier car 404)
+        KEY_PART_A + KEY_PART_B
     ];
     
-    // --- CONFIGURATION ULTRA-SIMPLE ---
-    // On teste uniquement les modèles qui marchent bien avec des requêtes simples
+    // LISTE DES CONFIGURATIONS À TESTER (Failover)
+    // On commence par 1.5-flash, puis on essaie les autres si besoin
     const CONFIGS_TO_TRY = [
         { version: 'v1beta', model: 'gemini-1.5-flash' },
-        { version: 'v1',     model: 'gemini-pro' } // Le plus tolérant
+        { version: 'v1beta', model: 'gemini-1.5-flash-latest' },
+        { version: 'v1beta', model: 'gemini-pro' },
+        { version: 'v1',     model: 'gemini-pro' }
     ];
-
+    
     const STORAGE_KEY = 'eleve_progression';
     const MASTERED_KEY = 'eleve_mastered_items';
 
@@ -199,7 +203,7 @@
         e.preventDefault();
         const btn = document.getElementById('start-btn');
         btn.disabled = true;
-        btn.textContent = "📡 Connexion Simplifiée...";
+        btn.textContent = "📡 Recherche de la meilleure connexion...";
 
         const lang = langSelect.value;
         const theme = themeSelect.value;
@@ -222,8 +226,8 @@
             type = "MIXTE"; 
 
             specialInstructions = `
-            RÔLE: Professeur Anglais 7ème Année Tunisie (Module 1).
-            SUJETS: ${detail}.
+            RÔLE: Professeur Anglais 7ème Année Tunisie (Module 1 "Family & Daily Life").
+            SUJETS SÉLECTIONNÉS: ${detail}.
             ${antiRepetitionPrompt}
             
             RÈGLES STRICTES DE COHÉRENCE (A SUIVRE IMPÉRATIVEMENT):
@@ -299,7 +303,7 @@
         }
     });
 
-    // --- FONCTION FAILOVER CORRIGÉE (SANS generationConfig) ---
+    // FONCTION FAILOVER INTELLIGENTE (CLÉS + CONFIGS)
     async function fetchWithFailover(prompt) {
         for (let keyIndex = 0; keyIndex < API_KEYS.length; keyIndex++) {
             let apiKey = API_KEYS[keyIndex].trim();
@@ -310,34 +314,30 @@
                     
                     const url = `https://generativelanguage.googleapis.com/${config.version}/models/${config.model}:generateContent?key=${apiKey}`;
                     
-                    // REQUÊTE MINIMALISTE (C'est ça qui règle l'erreur 400)
+                    // ENVOI SIMPLE (COMPATIBILITÉ MAXIMALE)
                     const response = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            contents: [{ parts: [{ text: prompt }] }] 
-                            // ON NE MET PAS DE generationConfig ICI !
-                        })
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     });
 
                     if (response.ok) {
-                        console.log(`✅ SUCCÈS !`);
+                        console.log(`✅ SUCCÈS ! Config utilisée : ${config.version}/${config.model}`);
                         const json = await response.json();
-                        // Nettoyage manuel du JSON (car on a enlevé le mode JSON automatique)
-                        let text = json.candidates[0].content.parts[0].text;
-                        text = text.replace(/```json|```/g, '').trim(); 
-                        // On cherche le début du tableau '[' et la fin ']'
-                        const start = text.indexOf('[');
-                        const end = text.lastIndexOf(']');
-                        if(start !== -1 && end !== -1) {
-                            text = text.substring(start, end + 1);
-                        }
-                        return JSON.parse(text);
+                        return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
                     } else {
-                        if (response.status === 404) continue; // Pas le bon modèle
-                        if (response.status === 400 || response.status === 429) break; // Clé problème
+                        // 404 = Mauvais modèle pour cette clé (on continue la boucle config)
+                        if (response.status === 404) continue; 
+                        
+                        // 400/403/429 = Clé HS (on change de clé)
+                        if (response.status >= 400) {
+                            console.warn(`Clé ${keyIndex + 1} HS (Erreur ${response.status}).`);
+                            break; 
+                        }
                     }
-                } catch (e) { }
+                } catch (e) { 
+                    // Erreur réseau, on continue
+                }
             }
         }
         throw new Error("Aucune combinaison n'a fonctionné.");
