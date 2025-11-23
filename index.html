@@ -112,33 +112,31 @@
     const K1_A = 'AIzaSyBRapCiKxYQmvjN';
     const K1_B = 'WR5SdeKxrse35-Qk3Qo';
 
-    // Clé 2 (Ancienne gratuite - Secours)
+    // Clé 2 (Secours)
     const K2_A = 'AIzaSyAMl-5LHPC-aGW';
     const K2_B = '5XWXDXYISz3sGq7NSXrE';
 
-    // Clé 3 (Ancienne gratuite - Secours)
+    // Clé 3 (Secours)
     const K3_A = 'AIzaSyC_j7DDSSFYbJ5';
     const K3_B = 'GWf-OX2bia_AoV8KD0GE';
 
-    // Tableau des clés reconstituées
+    // Reconstruction dynamique
     const API_KEYS = [
         K1_A + K1_B,
         K2_A + K2_B,
         K3_A + K3_B
     ];
-
-    // LISTE ULTRA-COMPLÈTE DES MODÈLES DISPONIBLES (Force Brute)
-    // L'application va tester ces combinaisons (version API / nom modèle)
-    const CONFIGS_TO_TRY = [
-        { version: 'v1beta', model: 'gemini-1.5-flash' },
-        { version: 'v1beta', model: 'gemini-1.5-flash-latest' },
-        { version: 'v1beta', model: 'gemini-1.5-pro' },
-        { version: 'v1beta', model: 'gemini-pro' },
-        { version: 'v1',     model: 'gemini-pro' } // Le "tank" : vieux mais très stable
-    ];
-
+    
     const STORAGE_KEY = 'eleve_progression';
     const MASTERED_KEY = 'eleve_mastered_items';
+
+    // CONFIGURATION FAILOVER (MODÈLE + ENDPOINT)
+    const CONFIGS_TO_TRY = [
+        { version: 'v1beta', model: 'gemini-1.5-flash' },  // Standard
+        { version: 'v1beta', model: 'gemini-1.5-pro' },    // Puissant
+        { version: 'v1beta', model: 'gemini-pro' },        // Classique
+        { version: 'v1',     model: 'gemini-pro' }         // Fallback ultime
+    ];
 
     let currentQuestions = [];
     let wrongQuestions = [];
@@ -320,15 +318,16 @@
     async function fetchWithFailover(prompt) {
         for (let keyIndex = 0; keyIndex < API_KEYS.length; keyIndex++) {
             let apiKey = API_KEYS[keyIndex].trim();
-            if(apiKey.length < 10) continue;
-
+            
             // Boucle sur les CONFIGURATIONS (Version + Modèle)
             for (const config of CONFIGS_TO_TRY) {
                 try {
                     console.log(`Test Clé ${keyIndex + 1} | ${config.version}/${config.model}`);
                     
+                    // Construction de l'URL dynamique
                     const url = `https://generativelanguage.googleapis.com/${config.version}/models/${config.model}:generateContent?key=${apiKey}`;
                     
+                    // ENVOI LE PLUS SIMPLE POSSIBLE (Pas de generationConfig)
                     const response = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -340,14 +339,18 @@
                         const json = await response.json();
                         return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
                     } else {
-                        if (response.status === 404) continue; // Modèle non trouvé, suivant
+                        // Si 404, on passe à la config suivante
+                        if (response.status === 404) continue; 
+                        
+                        // Si 429 (Quota) ou 403 (Interdit), on change de clé
                         if (response.status === 429 || response.status === 403) {
-                            console.warn(`Clé ${keyIndex + 1} bloquée. Changement de clé.`);
-                            break; // Clé épuisée, on sort de la boucle modèle pour changer de clé
+                            console.warn("Clé bloquée/épuisée, passage à la suivante...");
+                            break; 
                         }
+                        throw new Error(`Erreur HTTP ${response.status}`);
                     }
                 } catch (e) { 
-                    // Erreur réseau -> On continue
+                    // Erreur réseau, on continue
                 }
             }
         }
