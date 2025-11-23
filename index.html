@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon App Éducative - Modulaire</title>
+    <title>Mon App Éducative - Expert</title>
     <style>
-        /* --- VOS STYLES CSS (INCHANGÉS) --- */
         :root { --primary-color: #3f51b5; --secondary-color: #ffc107; --background-color: #f4f4f9; --text-color: #333; --success-color: #4CAF50; --error-color: #f44336; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--background-color); color: var(--text-color); margin: 0; padding: 0; display: flex; justify-content: center; padding: 20px; }
         .app-container { background: white; border-radius: 15px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); width: 100%; max-width: 800px; padding: 25px; min-height: 85vh; display: flex; flex-direction: column; }
@@ -22,22 +21,14 @@
         .checkbox-group label { display: inline-flex; align-items: center; margin: 5px 15px 5px 0; font-weight: normal; cursor: pointer; }
         .checkbox-group input { margin-right: 8px; }
         .exercise-item { background-color: #fff; border: 1px solid #e0e0e0; padding: 20px; margin-bottom: 20px; border-radius: 10px; border-left: 6px solid var(--secondary-color); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .fill-in-blank { border: none; border-bottom: 2px dashed var(--primary-color); background: #f0f4ff; padding: 5px 10px; border-radius: 4px; font-size: 1em; color: #333; font-weight: bold; width: 120px; text-align: center; }
-        .reorder-container { margin-top: 15px; }
-        .reorder-zone { min-height: 60px; padding: 10px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
-        .reorder-source { background-color: #f5f5f5; border: 1px dashed #ccc; }
-        .reorder-target { background-color: #e8eaf6; border: 2px solid var(--primary-color); }
-        .word-tag { background: white; border: 1px solid var(--primary-color); color: var(--primary-color); padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: 500; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.1s; }
-        .word-tag:active { transform: scale(0.95); }
-        .word-tag.placed { background: var(--primary-color); color: white; }
         .result-box { padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0; font-size: 1.2em; font-weight: bold; }
         .success { background-color: #e8f5e9; color: #2e7d32; }
         .failure { background-color: #ffebee; color: #c62828; }
         .correction-detail { background: #fff; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid #ccc; }
         .correction-detail.correct { border-left-color: var(--success-color); background: #f1f8e9; }
         .correction-detail.wrong { border-left-color: var(--error-color); background: #fff8f8; }
-        @media (max-width: 600px) { .app-container { padding: 15px; } h1 { font-size: 1.5em; } .word-tag { padding: 6px 10px; font-size: 0.9em; } .fill-in-blank { width: 100px; } }
         .hidden { display: none; }
+        @media (max-width: 600px) { .app-container { padding: 15px; } h1 { font-size: 1.5em; } }
     </style>
 </head>
 <body>
@@ -58,13 +49,15 @@
 
             <div id="dynamic-options"></div>
 
-            <label>3. Type d'exercice</label>
-            <select id="type-select">
-                <option value="remplir_les_blancs">Compléter la phrase (Saisie)</option>
-                <option value="choix_multiple">QCM (Choix Multiple)</option>
-                <option value="vrai_faux">Vrai ou Faux</option>
-                <option value="remettre_en_ordre">Mettre en ordre (Puzzle)</option>
-            </select>
+            <div id="type-select-container">
+                <label for="type-select">3. Type d'exercice</label>
+                <select id="type-select">
+                    <option value="remplir_les_blancs">Compléter la phrase (Saisie)</option>
+                    <option value="choix_multiple">QCM (Choix Multiple)</option>
+                    <option value="vrai_faux">Vrai ou Faux</option>
+                    <option value="remettre_en_ordre">Mettre en ordre (Puzzle)</option>
+                </select>
+            </div>
 
             <button type="submit" id="start-btn">✨ Générer les Exercices</button>
         </form>
@@ -72,7 +65,7 @@
     </div>
 
     <div id="exercise-screen" class="hidden">
-        <h2 id="exercise-header"></h2>
+        <h2 id="exercise-header">Exercices</h2>
         <div style="text-align: right; font-size: 0.9em; color: #666;">Temps: <span id="timer">0</span>s</div>
         <form id="quiz-form">
             <div id="questions-container"></div>
@@ -100,11 +93,9 @@
 </div>
 
 <script type="module">
-    // IMPORTS DES AUTRES FICHIERS
     import { THEMES, PRIORITY_VERBS } from './themes.js';
     import { PROMPT_TEMPLATES, renderExerciseContent, checkAnswer } from './exercises.js';
 
-    // CONFIGURATION
     const API_KEYS = [
         'AIzaSyA0HQlzOrz7eN_prymlJ_RWNEGr4xknOas', 
         'AIzaSyAMl-5LHPC-aGW5XWXDXYISz3sGq7NSXrE',
@@ -113,14 +104,14 @@
     const MODEL_NAME = 'gemini-2.5-flash';
     const STORAGE_KEY = 'eleve_progression';
 
-    // ETAT
     let currentQuestions = [];
     let timerInterval;
 
-    // --- INITIALISATION UI ---
     const langSelect = document.getElementById('language-select');
     const themeSelect = document.getElementById('theme-select');
     const dynamicOpts = document.getElementById('dynamic-options');
+    const typeSelectContainer = document.getElementById('type-select-container');
+    const typeSelect = document.getElementById('type-select');
 
     function init() {
         updateThemes();
@@ -141,67 +132,137 @@
         const config = THEMES[lang][theme];
         dynamicOpts.innerHTML = '';
 
-        if (config.type === 'select') {
-            let html = `<label>Sujet Précis</label><select id="sub-select">`;
-            config.options.forEach(o => html += `<option value="${o}">${o}</option>`);
-            html += `</select>`;
-            dynamicOpts.innerHTML = html;
-        } else if (config.type === 'checkbox') {
-            let html = `<div class="checkbox-group"><label>Groupes:</label><br>`;
-            config.groups.forEach(g => html += `<label><input type="checkbox" class="sub-check" value="${g}"> ${g}</label>`);
-            html += `<br><label style="margin-top:10px">Temps:</label><br>`;
-            config.tenses.forEach(t => html += `<label><input type="checkbox" class="sub-check-tense" value="${t}"> ${t}</label>`);
+        // GESTION DE L'AFFICHAGE DU SELECTEUR DE TYPE
+        if (config.type === 'module_mode') {
+            // Pour le Module 1, on cache le sélecteur classique
+            typeSelectContainer.classList.add('hidden');
+            
+            let html = `<div class="checkbox-group" style="background:#e3f2fd; border:2px solid #2196f3;">
+                        <strong style="color:#0d47a1;">🎯 Contenu à travailler (Cocher 1 ou plusieurs) :</strong><br>`;
+            config.options.forEach(opt => {
+                html += `<label style="display:block; margin:5px 0; font-weight:bold;"><input type="checkbox" class="module-check" value="${opt}"> ${opt}</label>`;
+            });
             html += `</div>`;
             dynamicOpts.innerHTML = html;
+        } else {
+            // Mode normal
+            typeSelectContainer.classList.remove('hidden');
+            if (config.type === 'select') {
+                let html = `<label>Sujet Précis</label><select id="sub-select">`;
+                config.options.forEach(o => html += `<option value="${o}">${o}</option>`);
+                html += `</select>`;
+                dynamicOpts.innerHTML = html;
+            } else if (config.type === 'checkbox') {
+                let html = `<div class="checkbox-group"><label>Groupes:</label><br>`;
+                config.groups.forEach(g => html += `<label><input type="checkbox" class="sub-check" value="${g}"> ${g}</label>`);
+                html += `<br><label style="margin-top:10px">Temps:</label><br>`;
+                config.tenses.forEach(t => html += `<label><input type="checkbox" class="sub-check-tense" value="${t}"> ${t}</label>`);
+                html += `</div>`;
+                dynamicOpts.innerHTML = html;
+            }
         }
     }
 
     init();
 
-    // --- LOGIQUE GÉNÉRATION ---
     document.getElementById('setup-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('start-btn');
         btn.disabled = true;
-        btn.textContent = "📡 Connexion à l'IA...";
+        btn.textContent = "📡 Analyse du programme 7ème...";
 
         const lang = langSelect.value;
         const theme = themeSelect.value;
-        const type = document.getElementById('type-select').value;
+        let type = typeSelect.value;
         let detail = "";
+        let specialInstructions = "";
 
-        if (THEMES[lang][theme].type === 'select') {
-            detail = document.getElementById('sub-select').value;
-        } else {
-            const groups = Array.from(document.querySelectorAll('.sub-check:checked')).map(c => c.value);
-            const tenses = Array.from(document.querySelectorAll('.sub-check-tense:checked')).map(c => c.value);
-            if(groups.length === 0 || tenses.length === 0) {
-                alert("Sélectionnez au moins un groupe et un temps !");
+        // --- LOGIQUE DU MODULE 1 (7TH GRADE) ---
+        if (THEMES[lang][theme].type === 'module_mode') {
+            const checked = Array.from(document.querySelectorAll('.module-check:checked')).map(c => c.value);
+            if (checked.length === 0) {
+                alert("Veuillez cocher au moins une option.");
                 btn.disabled = false; btn.textContent = "✨ Générer les Exercices";
                 return;
             }
-            detail = `Groupes: ${groups.join(', ')} | Temps: ${tenses.join(', ')}`;
+            detail = checked.join(' + ');
+            type = "MIXTE"; // On signale que le type est déterminé par l'IA
+
+            // PROMPT EXPERT BASÉ SUR LE LIVRE ET LE DEVOIR
+            specialInstructions = `
+            RÔLE: Professeur Anglais 7ème Année Tunisie (Module 1 "Family & Daily Life").
+            SUJETS SÉLECTIONNÉS: ${detail}.
+            
+            RÈGLES DU LIVRE SCOLAIRE:
+            - Vocabulaire: Family, Jobs (teacher, doctor, farmer), Routine (get up, breakfast, school), Hobbies.
+            - Grammaire: Present Simple (3e pers 's'), LIKE/ENJOY + V-ING (ex: enjoy playing), Possessifs.
+            
+            INSTRUCTIONS PAR SUJET:
+            1. SI "Language": Génère un mix:
+               - "Put verbs in brackets in right tense/form" (Cible: Present simple & -ing form). TYPE JSON: remplir_les_blancs.
+               - "Circle the correct option" (Ex: has/have, my/me). TYPE JSON: choix_multiple.
+               - "Match sentence with function" (Greeting, Introducing...). TYPE JSON: choix_multiple.
+            
+            2. SI "Listening": Génère 5 items.
+               - TYPE JSON: listening.
+               - Content: Un mot ou une phrase courte (Ex: "My father is a doctor").
+               - Instruction: "Listen and choose" ou "Same or Different sound".
+            
+            3. SI "Spelling": Génère 5 mots mélangés.
+               - TYPE JSON: remettre_en_ordre.
+               - Content: Lettres d'un mot (ex: "F,A,M,I,L,Y"). Instruction: "Reorder the letters".
+            
+            4. SI "EXAMEN RÉVISION": Génère 5 questions variées (1 Listening, 2 Language Tense, 1 Function, 1 Spelling).
+            
+            IMPORTANT: Assigne le champ "type" correct dans le JSON pour chaque question.
+            `;
+
+        } else {
+            // LOGIQUE STANDARD
+            if (THEMES[lang][theme].type === 'select') {
+                detail = document.getElementById('sub-select').value;
+            } else {
+                const groups = Array.from(document.querySelectorAll('.sub-check:checked')).map(c => c.value);
+                const tenses = Array.from(document.querySelectorAll('.sub-check-tense:checked')).map(c => c.value);
+                if(groups.length === 0 || tenses.length === 0) { alert("Sélection vide !"); btn.disabled = false; btn.textContent = "✨ Générer"; return; }
+                detail = `Groupes: ${groups} | Temps: ${tenses}`;
+            }
+            specialInstructions = `Instruction type: ${PROMPT_TEMPLATES[type]}`;
         }
 
         const prompt = `
             Génère 5 exercices éducatifs.
-            Langue: ${lang}. Thème: ${theme} (${detail}).
-            Type: "${type}".
+            Langue: ${lang}. Thème: ${theme}.
+            Détails: ${detail}.
+            
+            ${specialInstructions}
             ${theme === 'Conjugaison' ? `PRIORITÉ VERBES: ${PRIORITY_VERBS}.` : ''}
-            Instruction type: ${PROMPT_TEMPLATES[type]}
-            Format JSON STRICT: [{ "id": 1, "instruction": "...", "content": "...", "options": [], "correct": "..." }]
+
+            Format JSON STRICT attendu (Tableau):
+            [
+              {
+                "id": 1,
+                "type": "remplir_les_blancs" OU "choix_multiple" OU "vrai_faux" OU "remettre_en_ordre" OU "listening",
+                "instruction": "Consigne...",
+                "content": "Texte avec %BLANK% OU Question OU Liste...",
+                "options": ["opt1", "opt2"] (si besoin),
+                "correct": "réponse"
+              }
+            ]
         `;
 
         try {
             const data = await fetchWithFailover(prompt);
             currentQuestions = data;
-            currentQuestions.forEach(q => q.type = type);
+            // Si ce n'est pas le module mixte, on applique le type sélectionné par sécurité, sinon on laisse l'IA décider
+            if (THEMES[lang][theme].type !== 'module_mode') {
+                currentQuestions.forEach(q => q.type = type);
+            }
             startExercise();
         } catch (err) {
             console.error(err);
-            alert("Erreur API. Mode simulation activé.");
-            // Simulation basique pour éviter le crash
-            currentQuestions = [{id:1, type:type, instruction:"Simu", content:"Question simulée", correct:"réponse"}];
+            alert("Erreur API. Mode simulation.");
+            currentQuestions = [{id:1, type:type === 'MIXTE' ? 'choix_multiple' : type, instruction:"Simu", content:"Test", options:["A","B"], correct:"A"}];
             startExercise();
         } finally {
             btn.disabled = false;
@@ -227,14 +288,13 @@
         throw new Error("Toutes les clés HS");
     }
 
-    // --- LOGIQUE EXERCICE ---
+    // --- FONCTIONS D'INTERFACE ---
     function startExercise() {
         document.getElementById('selection-screen').classList.add('hidden');
         document.getElementById('exercise-screen').classList.remove('hidden');
         const container = document.getElementById('questions-container');
         container.innerHTML = '';
         
-        // Timer
         let seconds = 0;
         document.getElementById('timer').innerText = "0";
         if(timerInterval) clearInterval(timerInterval);
@@ -243,13 +303,11 @@
         currentQuestions.forEach((q, idx) => {
             const div = document.createElement('div');
             div.className = 'exercise-item';
-            // Appel à la fonction importée de exercises.js
             renderExerciseContent(q, idx, div);
             container.appendChild(div);
         });
     }
 
-    // --- CORRECTION ---
     document.getElementById('quiz-form').addEventListener('submit', (e) => {
         e.preventDefault();
         clearInterval(timerInterval);
@@ -258,7 +316,6 @@
         resultsDiv.innerHTML = '';
 
         currentQuestions.forEach(q => {
-            // Appel à la fonction importée de exercises.js
             const { isCorrect, userRep } = checkAnswer(q);
             if(isCorrect) score++;
 
@@ -285,25 +342,19 @@
         } else {
             banner.className = "result-box failure";
             banner.innerHTML = `Score : ${score}/${currentQuestions.length}. Courage !`;
-            document.getElementById('new-btn').classList.add('hidden');
+            document.getElementById('new-btn').classList.add('hidden'); // Cache Nouvelle Session si < 100%
             document.getElementById('retry-btn').classList.remove('hidden');
         }
         
-        // Sauvegarde historique
         saveHistory(score, currentQuestions.length);
     });
 
     function saveHistory(score, total) {
         const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        history.unshift({
-            date: new Date().toLocaleDateString(),
-            theme: themeSelect.value,
-            score: `${score}/${total}`
-        });
+        history.unshift({ date: new Date().toLocaleDateString(), theme: themeSelect.value, score: `${score}/${total}` });
         localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
     }
 
-    // --- FONCTIONS GLOBALES (pour les onclick HTML) ---
     window.retryExercise = function() {
         currentQuestions = currentQuestions.sort(() => Math.random() - 0.5);
         document.getElementById('result-screen').classList.add('hidden');
