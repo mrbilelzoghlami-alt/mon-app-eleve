@@ -106,20 +106,19 @@
     import { THEMES, PRIORITY_VERBS } from './themes.js';
     import { PROMPT_TEMPLATES, renderExerciseContent, checkAnswer } from './exercises.js';
 
-    // --- VOTRE CLÉ ---
+    // --- VOTRE DERNIÈRE CLÉ (Sécurisée) ---
     const K_PART_1 = 'AIzaSyDPfLFXZPUG';
     const K_PART_2 = 'ZF0I1v4n58jICXNIJ5Awo74';
     const API_KEY = K_PART_1 + K_PART_2;
-
+    
     const STORAGE_KEY = 'eleve_progression';
     const MASTERED_KEY = 'eleve_mastered_items';
 
-    // 3 CONFIGURATIONS A TESTER DANS L'ORDRE
+    // LISTE DE SECOURS ULTIME
     const CONFIGS = [
-        { url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent', name: 'Flash 1.5' },
-        { url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent', name: 'Flash Latest' },
-        { url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent', name: 'Pro 1.0' },
-        { url: 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', name: 'Pro V1' }
+        { url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent', name: 'Flash 1.5 Beta' },
+        { url: 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', name: 'Pro 1.0 Stable' },
+        { url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent', name: 'Pro 1.0 Beta' }
     ];
 
     let currentQuestions = [];
@@ -225,21 +224,26 @@
             SUJETS SÉLECTIONNÉS: ${detail}.
             ${antiRepetitionPrompt}
             
-            RÈGLES STRICTES:
-            1. "remplir_les_blancs": La phrase DOIT avoir un %BLANK%. PAS d'options.
-            2. "choix_multiple": PAS de %BLANK%. 3 Options obligatoires.
+            RÈGLES STRICTES DE COHÉRENCE (A SUIVRE IMPÉRATIVEMENT):
+            1. SI TYPE="remplir_les_blancs":
+               - La phrase DOIT contenir au moins un %BLANK%.
+               - Ne PAS fournir d'options de choix.
+            2. SI TYPE="choix_multiple":
+               - La phrase NE DOIT PAS contenir de %BLANK% (utilise "..." ou une question complète).
+               - Tu DOIS fournir un tableau "options".
+               - Le champ "correct" doit être égal à l'une des options.
             
             INSTRUCTIONS PAR SUJET:
-            1. Vocabulaire (Traduction): TYPE="vocabulaire_trad". Mot anglais -> Options Arabes.
-            2. Language: 
-               - Conjugaison: "remplir_les_blancs".
-               - Choix rapide: "choix_multiple".
-               - Functions: "choix_multiple".
-            3. Listening: TYPE="listening". Audio + QCM.
-            4. Spelling: TYPE="remettre_en_ordre". Lettres mélangées.
-            5. EXAMEN RÉVISION: Mix de 5 questions variées.
+            1. SI "Vocabulaire (Traduction)": Génère 5 items. TYPE JSON: vocabulaire_trad. Content: Mot anglais. Options: 3 mots arabes.
+            2. SI "Language":
+               - Pour "Put in right tense": Utilise "remplir_les_blancs".
+               - Pour "Circle option": Utilise "choix_multiple".
+               - Pour "Functions": Utilise "choix_multiple". Content: La phrase. Options: Les fonctions (Greeting, etc).
+            3. SI "Listening": Génère 5 items. TYPE JSON: listening.
+            4. SI "Spelling": Génère 5 items. TYPE JSON: remettre_en_ordre.
+            5. SI "EXAMEN RÉVISION": Génère un mix de 5 questions variées.
             
-            IMPORTANT: Assigne le champ "type" correct dans le JSON.
+            IMPORTANT: Assigne le champ "type" correct dans le JSON pour chaque question.
             `;
 
         } else {
@@ -293,9 +297,9 @@
         }
     });
 
-    // FONCTION DE CONNEXION MULTI-CONFIG
+    // --- FONCTION DE CONNEXION ROBUSTE (TESTE TOUT) ---
     async function callGemini(prompt) {
-        for (const config of CONFIGS_TO_TRY) {
+        for (const config of CONFIGS) {
             try {
                 console.log(`Tentative avec : ${config.name}`);
                 const url = `${config.url}?key=${API_KEY}`;
