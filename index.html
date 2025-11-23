@@ -115,6 +115,7 @@
     ];
     const MODEL_NAME = 'gemini-2.5-flash';
     const STORAGE_KEY = 'eleve_progression';
+    const MASTERED_KEY = 'eleve_mastered_items';
 
     let currentQuestions = [];
     let wrongQuestions = []; // Stocke les erreurs
@@ -179,6 +180,21 @@
 
     init();
 
+    // Récupérer les acquis pour le prompt
+    function getMasteredItems() {
+        const data = JSON.parse(localStorage.getItem(MASTERED_KEY) || '[]');
+        return data.slice(0, 30).join(', ');
+    }
+
+    // Sauvegarder un acquis (réponse correcte du premier coup)
+    function saveMasteredItem(item) {
+        let data = JSON.parse(localStorage.getItem(MASTERED_KEY) || '[]');
+        if (!data.includes(item) && String(item).length < 20) { 
+            data.unshift(item);
+            localStorage.setItem(MASTERED_KEY, JSON.stringify(data));
+        }
+    }
+
     document.getElementById('setup-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('start-btn');
@@ -191,6 +207,10 @@
         let detail = "";
         let specialInstructions = "";
         attemptCount = 0;
+        
+        const ignoredItems = getMasteredItems();
+        const antiRepetitionPrompt = ignoredItems ? `ANTI-RÉPÉTITION: Évite de poser des questions sur ces éléments que l'élève connaît déjà : [${ignoredItems}].` : "";
+
 
         // --- LOGIQUE DU MODULE 1 (7TH GRADE) ---
         if (THEMES[lang][theme].type === 'module_mode') {
@@ -206,27 +226,34 @@
             specialInstructions = `
             RÔLE: Professeur Anglais 7ème Année Tunisie (Module 1 "Family & Daily Life").
             SUJETS SÉLECTIONNÉS: ${detail}.
+            ${antiRepetitionPrompt}
             
             RÈGLES DU LIVRE SCOLAIRE:
             - Vocabulaire: Family, Jobs (teacher, doctor, farmer), Routine (get up, breakfast, school), Hobbies.
             - Grammaire: Present Simple (3e pers 's', Don't/Doesn't), LIKE/ENJOY + V-ING (ex: enjoy playing), Possessifs.
             
             INSTRUCTIONS PAR SUJET:
-            1. SI "Language": Génère un mix:
+            1. SI "Vocabulaire (Traduction)": Génère 5 items.
+               - TYPE JSON: vocabulaire_trad.
+               - Content: Un mot en Anglais du module (Family, Jobs, Hobbies).
+               - Options: 3 choix en ARABE. Correct: Le mot en arabe.
+               - Instruction: "Choisis la bonne traduction".
+
+            2. SI "Language": Génère un mix:
                - "Put verbs in brackets in right tense/form" (Cible: Present simple & -ing form). TYPE JSON: remplir_les_blancs.
                - "Circle the correct option" (Ex: has/have, my/me). TYPE JSON: choix_multiple.
                - "Match sentence with function" (Greeting, Introducing...). TYPE JSON: choix_multiple.
             
-            2. SI "Listening": Génère 5 items.
+            3. SI "Listening": Génère 5 items.
                - TYPE JSON: listening.
                - Content: Un mot ou une phrase courte (Ex: "My father is a doctor").
                - Instruction: "Listen and choose".
             
-            3. SI "Spelling": Génère 5 mots mélangés.
+            4. SI "Spelling": Génère 5 mots mélangés.
                - TYPE JSON: remettre_en_ordre.
-               - Content: Lettres d'un mot (ex: "F,A,M,I,L,Y"). Instruction: "Reorder the letters".
+               - Content: Lettres d'un mot (ex: "F,A,M,I,L,Y"). Instruction: "Reorder the letters (Indice: [Traduction FR/AR])".
             
-            4. SI "EXAMEN RÉVISION": Génère 5 questions variées (1 Listening, 2 Language Tense, 1 Function, 1 Spelling).
+            5. SI "EXAMEN RÉVISION": Génère 5 questions variées (1 Listening, 2 Language Tense, 1 Function, 1 Spelling).
             
             IMPORTANT: Assigne le champ "type" correct dans le JSON pour chaque question.
             `;
@@ -240,7 +267,7 @@
                 if(groups.length === 0 || tenses.length === 0) { alert("Sélection vide !"); btn.disabled = false; btn.textContent = "✨ Générer"; return; }
                 detail = `Groupes: ${groups} | Temps: ${tenses}`;
             }
-            specialInstructions = `Instruction type: ${PROMPT_TEMPLATES[type]}`;
+            specialInstructions = `Instruction type: ${PROMPT_TEMPLATES[type]}. ${antiRepetitionPrompt}`;
         }
 
         const prompt = `
@@ -255,7 +282,7 @@
             [
               {
                 "id": 1,
-                "type": "remplir_les_blancs" OU "choix_multiple" OU "vrai_faux" OU "remettre_en_ordre" OU "listening",
+                "type": "remplir_les_blancs" OU "choix_multiple" OU "vrai_faux" OU "remettre_en_ordre" OU "listening" OU "vocabulaire_trad",
                 "instruction": "Consigne...",
                 "content": "Texte avec %BLANK% OU Question OU Liste...",
                 "options": ["opt1", "opt2"] (si besoin),
@@ -285,6 +312,7 @@
     async function fetchWithFailover(prompt) {
         for (let i = 0; i < API_KEYS.length; i++) {
             try {
+                console.log(`Essai Clé ${i + 1}`);
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEYS[i]}`;
                 const response = await fetch(url, {
                     method: 'POST',
@@ -332,6 +360,9 @@
             const { isCorrect, userRep } = checkAnswer(q);
             if(isCorrect) {
                 score++;
+                if (attemptCount === 1) {
+                    saveMasteredItem(q.correct);
+                }
             } else {
                 wrongQuestions.push(q);
             }
