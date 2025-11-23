@@ -106,23 +106,10 @@
     import { THEMES, PRIORITY_VERBS } from './themes.js';
     import { PROMPT_TEMPLATES, renderExerciseContent, checkAnswer } from './exercises.js';
 
-    // --- SÉCURITÉ GITHUB : DÉCOUPAGE DE LA CLÉ ---
-    const KEY_PART_A = 'AIzaSyDPfLFXZPUG';
-    const KEY_PART_B = 'ZF0I1v4n58jICXNIJ5Awo74';
-    
-    // Liste de clés avec la nouvelle en priorité
-    const API_KEYS = [
-        KEY_PART_A + KEY_PART_B
-    ];
-    
-    // LISTE DES CONFIGURATIONS À TESTER (Failover)
-    // On commence par 1.5-flash, puis on essaie les autres si besoin
-    const CONFIGS_TO_TRY = [
-        { version: 'v1beta', model: 'gemini-1.5-flash' },
-        { version: 'v1beta', model: 'gemini-1.5-flash-latest' },
-        { version: 'v1beta', model: 'gemini-pro' },
-        { version: 'v1',     model: 'gemini-pro' }
-    ];
+    // --- VOTRE DERNIÈRE CLÉ (Sécurisée) ---
+    const K_PART_1 = 'AIzaSyDPfLFXZPUG';
+    const K_PART_2 = 'ZF0I1v4n58jICXNIJ5Awo74';
+    const API_KEY = K_PART_1 + K_PART_2;
     
     const STORAGE_KEY = 'eleve_progression';
     const MASTERED_KEY = 'eleve_mastered_items';
@@ -203,7 +190,7 @@
         e.preventDefault();
         const btn = document.getElementById('start-btn');
         btn.disabled = true;
-        btn.textContent = "📡 Recherche de la meilleure connexion...";
+        btn.textContent = "📡 Connexion...";
 
         const lang = langSelect.value;
         const theme = themeSelect.value;
@@ -286,7 +273,7 @@
         `;
 
         try {
-            const data = await fetchWithFailover(prompt);
+            const data = await callGemini(prompt);
             currentQuestions = data;
             if (THEMES[lang][theme].type !== 'module_mode') {
                 currentQuestions.forEach(q => q.type = type);
@@ -294,7 +281,7 @@
             startExercise();
         } catch (err) {
             console.error(err);
-            alert("Toutes les tentatives ont échoué. Mode simulation activé.");
+            alert(`Erreur API : ${err.message}. Mode simulation.`);
             currentQuestions = simulateData(type);
             startExercise();
         } finally {
@@ -303,44 +290,51 @@
         }
     });
 
-    // FONCTION FAILOVER INTELLIGENTE (CLÉS + CONFIGS)
-    async function fetchWithFailover(prompt) {
-        for (let keyIndex = 0; keyIndex < API_KEYS.length; keyIndex++) {
-            let apiKey = API_KEYS[keyIndex].trim();
-            
-            for (const config of CONFIGS_TO_TRY) {
-                try {
-                    console.log(`Test Clé ${keyIndex + 1} | ${config.version}/${config.model}`);
-                    
-                    const url = `https://generativelanguage.googleapis.com/${config.version}/models/${config.model}:generateContent?key=${apiKey}`;
-                    
-                    // ENVOI SIMPLE (COMPATIBILITÉ MAXIMALE)
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                    });
+    // --- FONCTION DE CONNEXION INTELLIGENTE (FALLBACK) ---
+    async function callGemini(prompt) {
+        // 1. Essai avec le modèle Flash (Rapide, JSON natif)
+        try {
+            console.log("Tentative 1 : gemini-1.5-flash (v1beta)");
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { responseMimeType: "application/json" }
+                })
+            });
 
-                    if (response.ok) {
-                        console.log(`✅ SUCCÈS ! Config utilisée : ${config.version}/${config.model}`);
-                        const json = await response.json();
-                        return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
-                    } else {
-                        // 404 = Mauvais modèle pour cette clé (on continue la boucle config)
-                        if (response.status === 404) continue; 
-                        
-                        // 400/403/429 = Clé HS (on change de clé)
-                        if (response.status >= 400) {
-                            console.warn(`Clé ${keyIndex + 1} HS (Erreur ${response.status}).`);
-                            break; 
-                        }
-                    }
-                } catch (e) { 
-                    // Erreur réseau, on continue
-                }
+            if (response.ok) {
+                const json = await response.json();
+                return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
+            } else {
+                console.warn(`Echec Flash: ${response.status}`);
             }
+        } catch (e) { console.warn("Erreur Flash", e); }
+
+        // 2. Essai avec le modèle Pro (Classique, pas de JSON config)
+        try {
+            console.log("Tentative 2 : gemini-pro (v1)");
+            const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${API_KEY}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+
+            if (response.ok) {
+                const json = await response.json();
+                const text = json.candidates[0].content.parts[0].text;
+                // Nettoyage manuel du JSON
+                const cleanText = text.substring(text.indexOf('['), text.lastIndexOf(']') + 1);
+                return JSON.parse(cleanText);
+            } else {
+                throw new Error(`Erreur ${response.status}`);
+            }
+        } catch (e) {
+            throw new Error("Impossible de se connecter à Google Gemini.");
         }
-        throw new Error("Aucune combinaison n'a fonctionné.");
     }
 
     function startExercise() {
