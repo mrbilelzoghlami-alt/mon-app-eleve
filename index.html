@@ -111,7 +111,8 @@
         'AIzaSyAMl-5LHPC-aGW5XWXDXYISz3sGq7NSXrE',
         'AIzaSyC_j7DDSSFYbJ5GWf-OX2bia_AoV8KD0GE'
     ];
-    const MODEL_NAME = 'gemini-pro';
+    // MODEL_NAME CORRIGÉ : 1.5-flash est le standard gratuit actuel
+    const MODEL_NAME = 'gemini-1.5-flash'; 
     const STORAGE_KEY = 'eleve_progression';
     const MASTERED_KEY = 'eleve_mastered_items';
 
@@ -147,7 +148,6 @@
 
         if (config.type === 'module_mode') {
             typeSelectContainer.classList.add('hidden');
-            
             let html = `<div class="checkbox-group" style="background:#e3f2fd; border:2px solid #2196f3;">
                         <strong style="color:#0d47a1;">🎯 Contenu à travailler (Cocher 1 ou plusieurs) :</strong><br>`;
             config.options.forEach(opt => {
@@ -192,7 +192,7 @@
         e.preventDefault();
         const btn = document.getElementById('start-btn');
         btn.disabled = true;
-        btn.textContent = "📡 Analyse du programme 7ème...";
+        btn.textContent = "📡 Analyse en cours...";
 
         const lang = langSelect.value;
         const theme = themeSelect.value;
@@ -214,31 +214,34 @@
             detail = checked.join(' + ');
             type = "MIXTE"; 
 
+            // PROMPT RENFORCÉ POUR ÉVITER LES ERREURS DE TYPE
             specialInstructions = `
             RÔLE: Professeur Anglais 7ème Année Tunisie (Module 1 "Family & Daily Life").
             SUJETS SÉLECTIONNÉS: ${detail}.
             ${antiRepetitionPrompt}
             
             RÈGLES STRICTES DE COHÉRENCE (A SUIVRE IMPÉRATIVEMENT):
-            1. SI TU VEUX UTILISER "remplir_les_blancs":
-               - La phrase DOIT contenir au moins un code %BLANK%.
-               - Tu NE DOIS PAS fournir de tableau "options". Le champ "options" doit être vide ou absent.
-               - Le champ "correct" contient le mot manquant.
-
-            2. SI TU VEUX UTILISER "choix_multiple" (QCM):
-               - La phrase (content) NE DOIT PAS contenir de %BLANK%. Pose une question complète (Ex: "What does he do?").
-               - Tu DOIS fournir un tableau "options" avec 3 choix.
-               - Le champ "correct" est égal à l'une des options.
+            1. SI TYPE="remplir_les_blancs":
+               - La phrase DOIT contenir au moins un %BLANK%.
+               - Ne PAS fournir d'options de choix.
+            2. SI TYPE="choix_multiple":
+               - La phrase NE DOIT PAS contenir de %BLANK% (utilise "..." ou une question complète).
+               - Tu DOIS fournir un tableau "options".
+               - Le champ "correct" doit être égal à l'une des options.
             
             INSTRUCTIONS PAR SUJET:
-            1. Vocabulaire (Traduction): TYPE="vocabulaire_trad". Mot anglais -> Options Arabes.
-            2. Language: 
-               - Conjugaison/Grammaire: Utilise "remplir_les_blancs" pour "Put in right tense".
-               - Choix rapide: Utilise "choix_multiple" pour "Circle correct option".
-            3. Listening: TYPE="listening". Audio + QCM.
-            4. Spelling: TYPE="remettre_en_ordre". Lettres mélangées.
+            1. SI "Vocabulaire (Traduction)": Génère 5 items. TYPE JSON: vocabulaire_trad. Content: Mot anglais. Options: 3 mots arabes.
             
-            IMPORTANT: Assigne le bon "type" JSON à chaque question individuellement.
+            2. SI "Language":
+               - Pour "Put in right tense": Utilise "remplir_les_blancs".
+               - Pour "Circle option": Utilise "choix_multiple".
+               - Pour "Functions": Utilise "choix_multiple". Content: La phrase. Options: Les fonctions (Greeting, etc).
+            
+            3. SI "Listening": Génère 5 items. TYPE JSON: listening.
+            
+            4. SI "Spelling": Génère 5 items. TYPE JSON: remettre_en_ordre.
+            
+            5. SI "EXAMEN RÉVISION": Génère un mix de 5 questions variées.
             `;
 
         } else {
@@ -268,7 +271,7 @@
                 "type": "remplir_les_blancs" OU "choix_multiple" OU "vrai_faux" OU "remettre_en_ordre" OU "listening" OU "vocabulaire_trad",
                 "instruction": "Consigne...",
                 "content": "...",
-                "options": ["opt1", "opt2"] (Seulement si QCM, sinon null),
+                "options": ["opt1", "opt2"] (si besoin, sinon null),
                 "correct": "réponse"
               }
             ]
@@ -406,15 +409,16 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
     }
 
-    // FONCTION DE NAVIGATION "NOUVELLE SESSION"
+    // --- NAVIGATION CORRIGÉE : Nouvelle Session conserve les choix ---
     window.newSession = function() {
         document.getElementById('result-screen').classList.add('hidden');
         document.getElementById('exercise-screen').classList.add('hidden');
         document.getElementById('history-screen').classList.add('hidden');
         document.getElementById('selection-screen').classList.remove('hidden');
-        // On ne reload PAS la page pour garder les choix du formulaire
-        // On réinitialise juste le compteur d'essais
+        
+        // On reset seulement le compteur, on ne recharge pas la page pour garder les choix
         attemptCount = 0;
+        wrongQuestions = [];
     };
 
     window.retryExercise = function() {
@@ -437,5 +441,3 @@
 
 </body>
 </html>
-
-
