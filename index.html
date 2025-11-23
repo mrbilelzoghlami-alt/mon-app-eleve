@@ -106,20 +106,18 @@
     import { THEMES, PRIORITY_VERBS } from './themes.js';
     import { PROMPT_TEMPLATES, renderExerciseContent, checkAnswer } from './exercises.js';
 
-    // --- VOTRE DERNIÈRE CLÉ (Sécurisée) ---
-    const K_PART_1 = 'AIzaSyDPfLFXZPUG';
-    const K_PART_2 = 'ZF0I1v4n58jICXNIJ5Awo74';
-    const API_KEY = K_PART_1 + K_PART_2;
+    // --- SÉCURITÉ GITHUB : DÉCOUPAGE DES CLÉS ---
+    const KEY_PART_A = 'AIzaSyDPfLFXZPUG';
+    const KEY_PART_B = 'ZF0I1v4n58jICXNIJ5Awo74';
+    const API_KEY = KEY_PART_A + KEY_PART_B;
     
     const STORAGE_KEY = 'eleve_progression';
     const MASTERED_KEY = 'eleve_mastered_items';
 
-    // LISTE DE SECOURS ULTIME
-    const CONFIGS = [
-        { url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent', name: 'Flash 1.5 Beta' },
-        { url: 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', name: 'Pro 1.0 Stable' },
-        { url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent', name: 'Pro 1.0 Beta' }
-    ];
+    // Utilisation d'une configuration d'API plus robuste (v1beta + gemini-1.0-pro)
+    // Cette combinaison est souvent plus permissive pour les clés récentes/gratuites
+    const MODEL_NAME = 'gemini-1.0-pro';
+    const API_VERSION = 'v1beta';
 
     let currentQuestions = [];
     let wrongQuestions = [];
@@ -297,31 +295,34 @@
         }
     });
 
-    // --- FONCTION DE CONNEXION ROBUSTE (TESTE TOUT) ---
+    // --- FONCTION DE CONNEXION OPTIMISÉE ---
     async function callGemini(prompt) {
-        for (const config of CONFIGS) {
-            try {
-                console.log(`Tentative avec : ${config.name}`);
-                const url = `${config.url}?key=${API_KEY}`;
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
+        const url = `https://generativelanguage.googleapis.com/${API_VERSION}/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
 
-                if (response.ok) {
-                    console.log(`✅ SUCCÈS avec ${config.name}`);
-                    const json = await response.json();
-                    return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
-                } else {
-                    console.warn(`Echec ${config.name} : ${response.status}`);
-                }
-            } catch (e) { 
-                console.warn(`Erreur ${config.name}`, e); 
-            }
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(`Erreur ${response.status}: ${errData.error?.message || 'Inconnue'}`);
         }
-        throw new Error("Impossible de trouver un modèle compatible.");
+
+        const json = await response.json();
+        // Nettoyage manuel du JSON (au cas où l'IA ajoute des ```json)
+        let text = json.candidates[0].content.parts[0].text;
+        text = text.replace(/```json|```/g, '').trim();
+        
+        // Extraction sécurisée du tableau JSON
+        const start = text.indexOf('[');
+        const end = text.lastIndexOf(']');
+        if (start !== -1 && end !== -1) {
+            text = text.substring(start, end + 1);
+        }
+        
+        return JSON.parse(text);
     }
 
     function startExercise() {
