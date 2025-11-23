@@ -88,7 +88,7 @@
         <div id="corrections-list"></div>
         
         <div style="display: flex; gap: 10px;">
-            <button id="retry-btn" class="hidden" onclick="window.retryExercise()">🔄 Répéter (Correction masquée)</button>
+            <button id="retry-btn" class="hidden" onclick="window.retryExercise()">🔄 Répéter les fautes</button>
             <button id="new-btn" class="hidden" onclick="location.reload()">🏠 Nouvelle Session</button>
         </div>
     </div>
@@ -113,6 +113,8 @@
     const STORAGE_KEY = 'eleve_progression';
 
     let currentQuestions = [];
+    let wrongQuestions = []; // Stocke les erreurs pour la répétition
+    let attemptCount = 0;    // Compteur de tentatives
     let timerInterval;
 
     const langSelect = document.getElementById('language-select');
@@ -184,6 +186,7 @@
         let type = typeSelect.value;
         let detail = "";
         let specialInstructions = "";
+        attemptCount = 0; // Reset compteur
 
         // --- LOGIQUE DU MODULE 1 (7TH GRADE) ---
         if (THEMES[lang][theme].type === 'module_mode') {
@@ -194,9 +197,8 @@
                 return;
             }
             detail = checked.join(' + ');
-            type = "MIXTE"; // On signale que le type est déterminé par l'IA
+            type = "MIXTE"; 
 
-            // PROMPT EXPERT BASÉ SUR LE LIVRE ET LE DEVOIR
             specialInstructions = `
             RÔLE: Professeur Anglais 7ème Année Tunisie (Module 1 "Family & Daily Life").
             SUJETS SÉLECTIONNÉS: ${detail}.
@@ -206,28 +208,26 @@
             - Grammaire: Present Simple (3e pers 's', Don't/Doesn't), LIKE/ENJOY + V-ING (ex: enjoy playing), Possessifs.
             
             INSTRUCTIONS PAR SUJET:
-            1. SI "Language" est choisi: Génère un mix de 5 questions:
+            1. SI "Language": Génère un mix:
                - "Put verbs in brackets in right tense/form" (Cible: Present simple & -ing form). TYPE JSON: remplir_les_blancs.
                - "Circle the correct option" (Ex: has/have, my/me). TYPE JSON: choix_multiple.
                - "Match sentence with function" (Greeting, Introducing...). TYPE JSON: choix_multiple.
             
-            2. SI "Listening" est choisi: Génère 5 items.
+            2. SI "Listening": Génère 5 items.
                - TYPE JSON: listening.
                - Content: Un mot ou une phrase courte (Ex: "My father is a doctor").
-               - Options: Des traductions ou des choix de réponse.
                - Instruction: "Listen and choose".
             
-            3. SI "Spelling" est choisi: Génère 5 mots mélangés.
+            3. SI "Spelling": Génère 5 mots mélangés.
                - TYPE JSON: remettre_en_ordre.
                - Content: Lettres d'un mot (ex: "F,A,M,I,L,Y"). Instruction: "Reorder the letters".
             
-            4. SI "EXAMEN RÉVISION" est choisi: Génère 5 exercices variés (1 Listening, 2 Language Tense, 1 Function, 1 Spelling).
+            4. SI "EXAMEN RÉVISION": Génère 5 questions variées (1 Listening, 2 Language Tense, 1 Function, 1 Spelling).
             
-            IMPORTANT: Pour chaque exercice généré, assigne le champ "type" correct dans le JSON (remplir_les_blancs, choix_multiple, listening, ou remettre_en_ordre) selon la nature de la question.
+            IMPORTANT: Assigne le champ "type" correct dans le JSON pour chaque question.
             `;
 
         } else {
-            // LOGIQUE STANDARD
             if (THEMES[lang][theme].type === 'select') {
                 detail = document.getElementById('sub-select').value;
             } else {
@@ -240,7 +240,7 @@
         }
 
         const prompt = `
-            Génère 5 exercices éducatifs.
+            Génère 5 exercices éducatifs unitaires.
             Langue: ${lang}. Thème: ${theme}.
             Détails: ${detail}.
             
@@ -263,7 +263,6 @@
         try {
             const data = await fetchWithFailover(prompt);
             currentQuestions = data;
-            // Si ce n'est pas le module mixte, on applique le type sélectionné par sécurité, sinon on laisse l'IA décider
             if (THEMES[lang][theme].type !== 'module_mode') {
                 currentQuestions.forEach(q => q.type = type);
             }
@@ -271,7 +270,7 @@
         } catch (err) {
             console.error(err);
             alert("Erreur API. Mode simulation.");
-            currentQuestions = simulateData(type);
+            currentQuestions = [{id:1, type:type === 'MIXTE' ? 'choix_multiple' : type, instruction:"Simu", content:"Test", options:["A","B"], correct:"A"}];
             startExercise();
         } finally {
             btn.disabled = false;
@@ -323,17 +322,35 @@
         let score = 0;
         const resultsDiv = document.getElementById('corrections-list');
         resultsDiv.innerHTML = '';
+        
+        attemptCount++; // +1 Tentative
+        wrongQuestions = []; // On reset la liste des erreurs pour ce tour
 
         currentQuestions.forEach(q => {
             const { isCorrect, userRep } = checkAnswer(q);
-            if(isCorrect) score++;
+            if(isCorrect) {
+                score++;
+            } else {
+                wrongQuestions.push(q); // On garde la question pour la refaire
+            }
 
             const detailDiv = document.createElement('div');
             detailDiv.className = `correction-detail ${isCorrect ? 'correct' : 'wrong'}`;
             
-            let correctionHTML = (isCorrect || score === currentQuestions.length) 
-                ? `<br><strong>Réponse:</strong> ${q.correct}` 
-                : `<br><em>Indice masqué</em>`;
+            // LOGIQUE D'AFFICHAGE CORRECTION :
+            // - Si Juste : On affiche la réponse (confirmation).
+            // - Si Faux ET < 2 tentatives : Indice masqué.
+            // - Si Faux ET >= 2 tentatives : On donne la réponse.
+            let correctionHTML = "";
+            if (isCorrect) {
+                correctionHTML = `<br><strong>Réponse correcte:</strong> ${q.correct}`;
+            } else {
+                if (attemptCount >= 2) {
+                    correctionHTML = `<br><strong>Solution:</strong> ${q.correct}`;
+                } else {
+                    correctionHTML = `<br><em>Indice masqué (Essayez encore !)</em>`;
+                }
+            }
 
             detailDiv.innerHTML = `<strong>Q:</strong> ${q.instruction}<br><strong>Vous:</strong> ${userRep} ${isCorrect ? "✅" : "❌"}${correctionHTML}`;
             resultsDiv.appendChild(detailDiv);
@@ -343,19 +360,39 @@
         document.getElementById('result-screen').classList.remove('hidden');
         
         const banner = document.getElementById('score-banner');
+        
+        // LOGIQUE BOUTONS :
+        const retryBtn = document.getElementById('retry-btn');
+        const newBtn = document.getElementById('new-session-btn');
+
         if(score === currentQuestions.length) {
+            // 100% REUSSITE
             banner.className = "result-box success";
             banner.innerHTML = `Bravo ! ${score}/${currentQuestions.length} 🏆`;
-            document.getElementById('new-btn').classList.remove('hidden');
-            document.getElementById('retry-btn').classList.add('hidden');
+            newBtn.classList.remove('hidden');
+            retryBtn.classList.add('hidden');
         } else {
+            // ECHEC
             banner.className = "result-box failure";
-            banner.innerHTML = `Score : ${score}/${currentQuestions.length}. Courage !`;
-            document.getElementById('new-btn').classList.add('hidden');
-            document.getElementById('retry-btn').classList.remove('hidden');
+            banner.innerHTML = `Score : ${score}/${currentQuestions.length}.`;
+            
+            if (attemptCount >= 2) {
+                // APRES 2 ESSAIS : GAME OVER -> SOLUTION
+                banner.innerHTML += " Voici la correction.";
+                newBtn.classList.remove('hidden');
+                retryBtn.classList.add('hidden');
+            } else {
+                // PREMIER ESSAI : RETRY
+                banner.innerHTML += " Courage ! Corrige tes fautes.";
+                newBtn.classList.add('hidden');
+                retryBtn.classList.remove('hidden');
+            }
         }
         
-        saveHistory(score, currentQuestions.length);
+        // Sauvegarde uniquement si c'est la fin (100% ou abandon après 2 essais)
+        if (score === currentQuestions.length || attemptCount >= 2) {
+            saveHistory(score, currentQuestions.length);
+        }
     });
 
     function saveHistory(score, total) {
@@ -365,9 +402,11 @@
     }
 
     window.retryExercise = function() {
-        currentQuestions = currentQuestions.sort(() => Math.random() - 0.5);
+        // On remplace les questions actuelles par UNIQUEMENT les fausses
+        currentQuestions = wrongQuestions;
+        
         document.getElementById('result-screen').classList.add('hidden');
-        startExercise();
+        startExercise(); // On relance l'affichage (sans mélanger cette fois, pour focus)
     };
 
     window.showHistory = function() {
