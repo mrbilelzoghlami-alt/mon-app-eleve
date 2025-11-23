@@ -36,11 +36,9 @@
         .correction-detail.correct { border-left-color: var(--success-color); background: #f1f8e9; }
         .correction-detail.wrong { border-left-color: var(--error-color); background: #fff8f8; }
         .hidden { display: none; }
-        @media (max-width: 600px) { .app-container { padding: 15px; } h1 { font-size: 1.5em; } }
-        
-        /* Style spécifique pour les actions de résultat */
         .results-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
         .results-actions button { width: auto; min-width: 200px; margin-top: 0; }
+        @media (max-width: 600px) { .app-container { padding: 15px; } h1 { font-size: 1.5em; } }
     </style>
 </head>
 <body>
@@ -83,7 +81,7 @@
             <div id="questions-container"></div>
             <button type="submit">✅ Valider mes réponses</button>
         </form>
-        <button class="back-btn" onclick="location.reload()">❌ Abandonner</button>
+        <button class="back-btn" onclick="window.newSession()">❌ Abandonner</button>
     </div>
 
     <div id="result-screen" class="hidden">
@@ -93,14 +91,14 @@
         
         <div class="results-actions">
             <button id="retry-btn" class="hidden" onclick="window.retryExercise()">🔄 Répéter les fautes</button>
-            <button id="new-btn" class="hidden" onclick="location.reload()">🏠 Nouvelle Session</button>
+            <button id="new-btn" class="hidden" onclick="window.newSession()">🏠 Nouvelle Session</button>
         </div>
     </div>
 
     <div id="history-screen" class="hidden">
         <h2>Mon Historique</h2>
         <div id="history-content"></div>
-        <button class="back-btn" onclick="location.reload()">Retour</button>
+        <button class="back-btn" onclick="window.newSession()">Retour</button>
     </div>
 </div>
 
@@ -118,8 +116,8 @@
     const MASTERED_KEY = 'eleve_mastered_items';
 
     let currentQuestions = [];
-    let wrongQuestions = []; // Stocke les erreurs
-    let attemptCount = 0;    // Compteur de tentatives
+    let wrongQuestions = [];
+    let attemptCount = 0;
     let timerInterval;
 
     const langSelect = document.getElementById('language-select');
@@ -149,7 +147,6 @@
 
         // GESTION DE L'AFFICHAGE DU SELECTEUR DE TYPE
         if (config.type === 'module_mode') {
-            // Pour le Module 1, on cache le sélecteur classique
             typeSelectContainer.classList.add('hidden');
             
             let html = `<div class="checkbox-group" style="background:#e3f2fd; border:2px solid #2196f3;">
@@ -160,7 +157,6 @@
             html += `</div>`;
             dynamicOpts.innerHTML = html;
         } else {
-            // Mode normal
             typeSelectContainer.classList.remove('hidden');
             if (config.type === 'select') {
                 let html = `<label>Sujet Précis</label><select id="sub-select">`;
@@ -180,13 +176,11 @@
 
     init();
 
-    // Récupérer les acquis pour le prompt
     function getMasteredItems() {
         const data = JSON.parse(localStorage.getItem(MASTERED_KEY) || '[]');
         return data.slice(0, 30).join(', ');
     }
 
-    // Sauvegarder un acquis (réponse correcte du premier coup)
     function saveMasteredItem(item) {
         let data = JSON.parse(localStorage.getItem(MASTERED_KEY) || '[]');
         if (!data.includes(item) && String(item).length < 20) { 
@@ -199,7 +193,7 @@
         e.preventDefault();
         const btn = document.getElementById('start-btn');
         btn.disabled = true;
-        btn.textContent = "📡 Analyse du programme 7ème...";
+        btn.textContent = "📡 Analyse en cours...";
 
         const lang = langSelect.value;
         const theme = themeSelect.value;
@@ -210,7 +204,6 @@
         
         const ignoredItems = getMasteredItems();
         const antiRepetitionPrompt = ignoredItems ? `ANTI-RÉPÉTITION: Évite de poser des questions sur ces éléments que l'élève connaît déjà : [${ignoredItems}].` : "";
-
 
         // --- LOGIQUE DU MODULE 1 (7TH GRADE) ---
         if (THEMES[lang][theme].type === 'module_mode') {
@@ -228,9 +221,8 @@
             SUJETS SÉLECTIONNÉS: ${detail}.
             ${antiRepetitionPrompt}
             
-            RÈGLES DU LIVRE SCOLAIRE:
-            - Vocabulaire: Family, Jobs (teacher, doctor, farmer), Routine (get up, breakfast, school), Hobbies.
-            - Grammaire: Present Simple (3e pers 's', Don't/Doesn't), LIKE/ENJOY + V-ING (ex: enjoy playing), Possessifs.
+            RÈGLES IMPORTANTES:
+            1. SIMPLICITÉ : 1 question = 1 seule phrase = 1 seul trou (pour éviter les bugs d'affichage).
             
             INSTRUCTIONS PAR SUJET:
             1. SI "Vocabulaire (Traduction)": Génère 5 items.
@@ -238,13 +230,13 @@
                - Content: Un mot en Anglais du module (Family, Jobs, Hobbies).
                - Options: 3 choix en ARABE. Correct: Le mot en arabe.
                - Instruction: "Choisis la bonne traduction".
-
-            2. SI "Language": Génère un mix:
+            
+            2. SI "Language": Génère un mix de 5 questions:
                - "Put verbs in brackets in right tense/form" (Cible: Present simple & -ing form). TYPE JSON: remplir_les_blancs.
                - "Circle the correct option" (Ex: has/have, my/me). TYPE JSON: choix_multiple.
                - "Match sentence with function" (Greeting, Introducing...). TYPE JSON: choix_multiple.
             
-            3. SI "Listening": Génère 5 items.
+            3. SI "Listening": Génère 5 items audio.
                - TYPE JSON: listening.
                - Content: Un mot ou une phrase courte (Ex: "My father is a doctor").
                - Instruction: "Listen and choose".
@@ -354,7 +346,7 @@
         resultsDiv.innerHTML = '';
         
         attemptCount++; 
-        wrongQuestions = []; // Reset pour ce tour
+        wrongQuestions = []; 
 
         currentQuestions.forEach(q => {
             const { isCorrect, userRep } = checkAnswer(q);
@@ -422,6 +414,17 @@
         history.unshift({ date: new Date().toLocaleDateString(), theme: themeSelect.value, score: `${score}/${total}` });
         localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
     }
+
+    // FONCTION DE NAVIGATION CORRIGÉE
+    window.newSession = function() {
+        document.getElementById('result-screen').classList.add('hidden');
+        document.getElementById('exercise-screen').classList.add('hidden');
+        document.getElementById('history-screen').classList.add('hidden');
+        document.getElementById('selection-screen').classList.remove('hidden');
+        // On ne reload PAS la page pour garder les sélections
+        // On reset juste le compteur
+        attemptCount = 0;
+    };
 
     window.retryExercise = function() {
         currentQuestions = wrongQuestions;
