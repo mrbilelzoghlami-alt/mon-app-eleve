@@ -3,199 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon App Éducative - Multi-Sources</title>
+    <title>Mon App Éducative - Modulaire</title>
     <style>
-        :root {
-            --primary-color: #3f51b5;
-            --secondary-color: #ffc107;
-            --background-color: #f4f4f9;
-            --text-color: #333;
-            --success-color: #4CAF50;
-            --error-color: #f44336;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .app-container {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 800px;
-            padding: 25px;
-            min-height: 85vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        h1 {
-            color: var(--primary-color);
-            text-align: center;
-            border-bottom: 3px solid var(--secondary-color);
-            padding-bottom: 15px;
-            margin-top: 0;
-        }
-
-        /* --- Formulaire --- */
-        label {
-            font-weight: bold;
-            margin-top: 15px;
-            display: block;
-        }
-
-        select, button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 8px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-
-        button {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            margin-top: 20px;
-        }
-
-        button:hover:not(:disabled) {
-            background-color: #303f9f;
-            transform: translateY(-2px);
-        }
-
-        button:disabled {
-            background-color: #9fa8da;
-            cursor: not-allowed;
-        }
-
-        .back-btn {
-            background-color: #e0e0e0;
-            color: #333;
-        }
+        /* --- VOS STYLES CSS (INCHANGÉS) --- */
+        :root { --primary-color: #3f51b5; --secondary-color: #ffc107; --background-color: #f4f4f9; --text-color: #333; --success-color: #4CAF50; --error-color: #f44336; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--background-color); color: var(--text-color); margin: 0; padding: 0; display: flex; justify-content: center; padding: 20px; }
+        .app-container { background: white; border-radius: 15px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); width: 100%; max-width: 800px; padding: 25px; min-height: 85vh; display: flex; flex-direction: column; }
+        h1 { color: var(--primary-color); text-align: center; border-bottom: 3px solid var(--secondary-color); padding-bottom: 15px; margin-top: 0; }
+        label { font-weight: bold; margin-top: 15px; display: block; }
+        select, button { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        button { background-color: var(--primary-color); color: white; border: none; cursor: pointer; font-weight: bold; transition: all 0.3s ease; margin-top: 20px; }
+        button:hover:not(:disabled) { background-color: #303f9f; transform: translateY(-2px); }
+        button:disabled { background-color: #9fa8da; cursor: not-allowed; }
+        .back-btn { background-color: #e0e0e0; color: #333; }
         .back-btn:hover { background-color: #d5d5d5; }
-        
-        #show-progress-btn {
-            background-color: white;
-            color: var(--primary-color);
-            border: 2px solid var(--primary-color);
-        }
-
-        /* --- Checkboxes --- */
-        .checkbox-group {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 10px;
-            border: 1px solid #e0e0e0;
-        }
-        .checkbox-group label {
-            display: inline-flex;
-            align-items: center;
-            margin: 5px 15px 5px 0;
-            font-weight: normal;
-            cursor: pointer;
-        }
+        #show-progress-btn { background-color: white; color: var(--primary-color); border: 2px solid var(--primary-color); }
+        .checkbox-group { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 10px; border: 1px solid #e0e0e0; }
+        .checkbox-group label { display: inline-flex; align-items: center; margin: 5px 15px 5px 0; font-weight: normal; cursor: pointer; }
         .checkbox-group input { margin-right: 8px; }
-
-        /* --- Exercices --- */
-        .exercise-item {
-            background-color: #fff;
-            border: 1px solid #e0e0e0;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 10px;
-            border-left: 6px solid var(--secondary-color);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-
-        .fill-in-blank {
-            border: none;
-            border-bottom: 2px dashed var(--primary-color);
-            background: #f0f4ff;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 1em;
-            color: #333;
-            font-weight: bold;
-            width: 120px;
-            text-align: center;
-        }
-
-        /* --- Mettre en Ordre (Drag/Click) --- */
-        .reorder-container {
-            margin-top: 15px;
-        }
-        .reorder-zone {
-            min-height: 60px;
-            padding: 10px;
-            border-radius: 8px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
+        .exercise-item { background-color: #fff; border: 1px solid #e0e0e0; padding: 20px; margin-bottom: 20px; border-radius: 10px; border-left: 6px solid var(--secondary-color); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .fill-in-blank { border: none; border-bottom: 2px dashed var(--primary-color); background: #f0f4ff; padding: 5px 10px; border-radius: 4px; font-size: 1em; color: #333; font-weight: bold; width: 120px; text-align: center; }
+        .reorder-container { margin-top: 15px; }
+        .reorder-zone { min-height: 60px; padding: 10px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
         .reorder-source { background-color: #f5f5f5; border: 1px dashed #ccc; }
         .reorder-target { background-color: #e8eaf6; border: 2px solid var(--primary-color); }
-        
-        .word-tag {
-            background: white;
-            border: 1px solid var(--primary-color);
-            color: var(--primary-color);
-            padding: 8px 15px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: 500;
-            user-select: none;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: transform 0.1s;
-        }
+        .word-tag { background: white; border: 1px solid var(--primary-color); color: var(--primary-color); padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: 500; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.1s; }
         .word-tag:active { transform: scale(0.95); }
         .word-tag.placed { background: var(--primary-color); color: white; }
-
-        /* --- Résultats --- */
-        .result-box {
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            margin: 20px 0;
-            font-size: 1.2em;
-            font-weight: bold;
-        }
+        .result-box { padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0; font-size: 1.2em; font-weight: bold; }
         .success { background-color: #e8f5e9; color: #2e7d32; }
         .failure { background-color: #ffebee; color: #c62828; }
-
-        .correction-detail {
-            background: #fff;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            border-left: 4px solid #ccc;
-        }
+        .correction-detail { background: #fff; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid #ccc; }
         .correction-detail.correct { border-left-color: var(--success-color); background: #f1f8e9; }
         .correction-detail.wrong { border-left-color: var(--error-color); background: #fff8f8; }
-
-        /* --- Responsive --- */
-        @media (max-width: 600px) {
-            .app-container { padding: 15px; }
-            h1 { font-size: 1.5em; }
-            .word-tag { padding: 6px 10px; font-size: 0.9em; }
-            .fill-in-blank { width: 100px; }
-        }
-
+        @media (max-width: 600px) { .app-container { padding: 15px; } h1 { font-size: 1.5em; } .word-tag { padding: 6px 10px; font-size: 0.9em; } .fill-in-blank { width: 100px; } }
         .hidden { display: none; }
     </style>
 </head>
@@ -227,7 +68,7 @@
 
             <button type="submit" id="start-btn">✨ Générer les Exercices</button>
         </form>
-        <button id="history-btn" onclick="showHistory()">Voir ma progression 📊</button>
+        <button id="history-btn" onclick="window.showHistory()">Voir ma progression 📊</button>
     </div>
 
     <div id="exercise-screen" class="hidden">
@@ -246,7 +87,7 @@
         <div id="corrections-list"></div>
         
         <div style="display: flex; gap: 10px;">
-            <button id="retry-btn" class="hidden" onclick="retryExercise()">🔄 Répéter (Correction masquée)</button>
+            <button id="retry-btn" class="hidden" onclick="window.retryExercise()">🔄 Répéter (Correction masquée)</button>
             <button id="new-btn" class="hidden" onclick="location.reload()">🏠 Nouvelle Session</button>
         </div>
     </div>
@@ -258,38 +99,25 @@
     </div>
 </div>
 
-<script>
-    // ================= CONFIGURATION MULTI-CLÉS =================
-    // L'app essaiera la 1ère, si erreur, la 2ème, etc.
+<script type="module">
+    // IMPORTS DES AUTRES FICHIERS
+    import { THEMES, PRIORITY_VERBS } from './themes.js';
+    import { PROMPT_TEMPLATES, renderExerciseContent, checkAnswer } from './exercises.js';
+
+    // CONFIGURATION
     const API_KEYS = [
-        'AIzaSyA0HQlzOrz7eN_prymlJ_RWNEGr4xknOas', // Priorité 1 : Clé Payante (mr.bilel)
-        'AIzaSyAMl-5LHPC-aGW5XWXDXYISz3sGq7NSXrE', // Secours 1 : Clé Gratuite (mooc.bilel)
-        'AIzaSyC_j7DDSSFYbJ5GWf-OX2bia_AoV8KD0GE'  // Secours 2 : Clé Gratuite (expertcfel)
+        'AIzaSyA0HQlzOrz7eN_prymlJ_RWNEGr4xknOas', 
+        'AIzaSyAMl-5LHPC-aGW5XWXDXYISz3sGq7NSXrE',
+        'AIzaSyC_j7DDSSFYbJ5GWf-OX2bia_AoV8KD0GE'
     ];
-    
-    const MODEL_NAME = 'gemini-2.5-flash'; // Modèle rapide
+    const MODEL_NAME = 'gemini-2.5-flash';
+    const STORAGE_KEY = 'eleve_progression';
 
-    // Données statiques
-    const THEMES = {
-        "Français": {
-            "Conjugaison": { type: "checkbox", groups: ["1er groupe", "2e groupe", "3e groupe"], tenses: ["Présent", "Futur", "Passé Composé", "Impératif"] },
-            "Grammaire": { type: "select", options: ["Les déterminants", "L'adjectif qualificatif", "Le sujet et le verbe", "Le pluriel des noms"] },
-            "Vocabulaire": { type: "select", options: ["Les émotions", "L'école", "La maison", "Les animaux"] }
-        },
-        "Anglais": {
-            "Vocabulary": { type: "select", options: ["Family Members", "Animals", "Colors & Numbers", "School Objects", "House & Furniture"] },
-            "Grammar": { type: "select", options: ["To Be (Present)", "To Have (Present)", "Plural of Nouns", "Present Continuous"] }
-        }
-    };
-
-    const PRIORITY_VERBS = "être, avoir, marcher, manger, commencer, appeler, acheter, envoyer, nettoyer, aller, courir, voir, lire, se promener, réussir, savoir, vouloir, pouvoir, écrire, partir, vivre, venir, rendre, mettre, faire, dire";
-
-    // Variables d'état
+    // ETAT
     let currentQuestions = [];
-    let startTime;
     let timerInterval;
 
-    // ================= INITIALISATION =================
+    // --- INITIALISATION UI ---
     const langSelect = document.getElementById('language-select');
     const themeSelect = document.getElementById('theme-select');
     const dynamicOpts = document.getElementById('dynamic-options');
@@ -303,9 +131,7 @@
     function updateThemes() {
         const lang = langSelect.value;
         themeSelect.innerHTML = '';
-        Object.keys(THEMES[lang]).forEach(t => {
-            themeSelect.add(new Option(t, t));
-        });
+        Object.keys(THEMES[lang]).forEach(t => themeSelect.add(new Option(t, t)));
         updateSubOptions();
     }
 
@@ -332,14 +158,13 @@
 
     init();
 
-    // ================= GÉNÉRATION (API FAILOVER) =================
+    // --- LOGIQUE GÉNÉRATION ---
     document.getElementById('setup-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('start-btn');
         btn.disabled = true;
-        btn.textContent = "📡 Connexion à l'IA en cours...";
+        btn.textContent = "📡 Connexion à l'IA...";
 
-        // Construction du prompt
         const lang = langSelect.value;
         const theme = themeSelect.value;
         const type = document.getElementById('type-select').value;
@@ -359,34 +184,24 @@
         }
 
         const prompt = `
-            Génère 5 exercices éducatifs pour un enfant.
+            Génère 5 exercices éducatifs.
             Langue: ${lang}. Thème: ${theme} (${detail}).
             Type: "${type}".
-            
-            ${theme === 'Conjugaison' ? `IMPORTANT: Priorité absolue aux verbes suivants pour les choix : ${PRIORITY_VERBS}. Si pas assez de verbes de ce groupe dans la liste, complète avec d'autres courants.` : ''}
-            ${type === 'remplir_les_blancs' ? 'IMPORTANT: Mets le mot à trouver (infinitif ou mot de base) entre parenthèses juste avant le trou pour servir d\'indice. Ex: "Il (manger) %BLANK% une pomme."' : ''}
-
-            Format JSON STRICT attendu (Tableau d'objets):
-            [
-              {
-                "id": 1,
-                "instruction": "Consigne simple",
-                "content": "Phrase avec %BLANK% ou Liste de mots pour ordre ou Question",
-                "options": ["choix1", "choix2"] (si QCM/Vrai-Faux),
-                "correct": "réponse exacte (chaine ou liste ordonnée)"
-              }
-            ]
+            ${theme === 'Conjugaison' ? `PRIORITÉ VERBES: ${PRIORITY_VERBS}.` : ''}
+            Instruction type: ${PROMPT_TEMPLATES[type]}
+            Format JSON STRICT: [{ "id": 1, "instruction": "...", "content": "...", "options": [], "correct": "..." }]
         `;
 
         try {
-            const data = await fetchWithFailover(prompt); // Appel intelligent avec rotation de clés
+            const data = await fetchWithFailover(prompt);
             currentQuestions = data;
-            currentQuestions.forEach(q => q.type = type); // Stocke le type
+            currentQuestions.forEach(q => q.type = type);
             startExercise();
         } catch (err) {
             console.error(err);
-            alert("Toutes les clés API ont échoué ou problème réseau. Mode simulation activé.");
-            currentQuestions = simulateData(type);
+            alert("Erreur API. Mode simulation activé.");
+            // Simulation basique pour éviter le crash
+            currentQuestions = [{id:1, type:type, instruction:"Simu", content:"Question simulée", correct:"réponse"}];
             startExercise();
         } finally {
             btn.disabled = false;
@@ -394,51 +209,28 @@
         }
     });
 
-    // Fonction de basculement de clé (Failover)
     async function fetchWithFailover(prompt) {
-        // On essaie les clés une par une
         for (let i = 0; i < API_KEYS.length; i++) {
             try {
-                console.log(`Tentative avec la clé n°${i + 1}...`);
-                const result = await callGemini(API_KEYS[i], prompt);
-                console.log(`Succès avec la clé n°${i + 1}`);
-                return result; // Si ça marche, on retourne le résultat et on arrête la boucle
-            } catch (error) {
-                console.warn(`Echec de la clé n°${i + 1}:`, error.message);
-                // Si c'est la dernière clé et qu'elle échoue aussi, on lance l'erreur finale
-                if (i === API_KEYS.length - 1) throw new Error("Toutes les clés sont HS");
-            }
+                console.log(`Essai Clé ${i + 1}`);
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEYS[i]}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                if (!response.ok) throw new Error("Erreur API");
+                const json = await response.json();
+                return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
+            } catch (e) { console.warn(`Echec Clé ${i+1}`); }
         }
+        throw new Error("Toutes les clés HS");
     }
 
-    async function callGemini(apiKey, prompt) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: "application/json" }
-            })
-        });
-
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(`API Error: ${response.status} - ${errData.error?.message || 'Unknown'}`);
-        }
-        
-        const json = await response.json();
-        const text = json.candidates[0].content.parts[0].text;
-        // Nettoyage du markdown json si présent
-        const cleanText = text.replace(/^```json\s*|s*```$/g, '').trim();
-        return JSON.parse(cleanText);
-    }
-
-    // ================= INTERFACE EXERCICE =================
+    // --- LOGIQUE EXERCICE ---
     function startExercise() {
         document.getElementById('selection-screen').classList.add('hidden');
         document.getElementById('exercise-screen').classList.remove('hidden');
-        
         const container = document.getElementById('questions-container');
         container.innerHTML = '';
         
@@ -446,215 +238,85 @@
         let seconds = 0;
         document.getElementById('timer').innerText = "0";
         if(timerInterval) clearInterval(timerInterval);
-        timerInterval = setInterval(() => {
-            seconds++;
-            document.getElementById('timer').innerText = seconds;
-        }, 1000);
+        timerInterval = setInterval(() => { seconds++; document.getElementById('timer').innerText = seconds; }, 1000);
 
         currentQuestions.forEach((q, idx) => {
             const div = document.createElement('div');
             div.className = 'exercise-item';
-            div.innerHTML = `<p><strong>Question ${idx+1}:</strong> ${q.instruction}</p>`;
-
-            // Rendu selon le type
-            if (q.type === 'remplir_les_blancs') {
-                // Transforme %BLANK% en input
-                const html = q.content.replace(/%BLANK%/g, `<input type="text" class="fill-in-blank" name="q${q.id}" autocomplete="off">`);
-                div.innerHTML += `<p style="line-height:2em; font-size:1.1em">${html}</p>`;
-            } 
-            else if (q.type === 'choix_multiple' || q.type === 'vrai_faux') {
-                div.innerHTML += `<p>${q.content}</p>`;
-                q.options.forEach(opt => {
-                    div.innerHTML += `
-                        <label style="font-weight:normal; margin:5px 0; display:block;">
-                            <input type="radio" name="q${q.id}" value="${opt}"> ${opt}
-                        </label>`;
-                });
-            }
-            else if (q.type === 'remettre_en_ordre') {
-                div.innerHTML += `<p>${q.instruction}</p>`;
-                // Zone interactive
-                const zoneId = `zone-${q.id}`;
-                // Mélanger les mots initiaux si ce n'est pas déjà fait dans la question
-                // On suppose que q.content est une liste de mots séparés par virgules ou espaces
-                let words = [];
-                if (q.content.includes(',')) words = q.content.split(',').map(s=>s.trim());
-                else words = q.content.split(' ').map(s=>s.trim());
-                
-                // Mélange aléatoire initial pour l'affichage
-                words.sort(() => Math.random() - 0.5);
-                
-                let html = `
-                    <div class="reorder-container" id="${zoneId}">
-                        <div class="reorder-zone reorder-source" data-type="source">
-                            ${words.map(w => `<span class="word-tag">${w}</span>`).join('')}
-                        </div>
-                        <p style="font-size:0.8em; color:#666">Cliquez pour déplacer les mots 👇</p>
-                        <div class="reorder-zone reorder-target" data-type="target"></div>
-                        <input type="hidden" name="q${q.id}"> 
-                    </div>
-                `;
-                div.innerHTML += html;
-            }
-
+            // Appel à la fonction importée de exercises.js
+            renderExerciseContent(q, idx, div);
             container.appendChild(div);
         });
-
-        // Active la logique de clic pour le puzzle
-        setupDragAndClick();
     }
 
-    function setupDragAndClick() {
-        document.querySelectorAll('.word-tag').forEach(tag => {
-            tag.addEventListener('click', function() {
-                const currentZone = this.parentElement;
-                const container = currentZone.parentElement;
-                const targetZone = currentZone.classList.contains('reorder-source') 
-                    ? container.querySelector('.reorder-target') 
-                    : container.querySelector('.reorder-source');
-                
-                targetZone.appendChild(this);
-                this.classList.toggle('placed');
-
-                // Mettre à jour l'input caché avec la phrase construite
-                const hiddenInput = container.querySelector('input[type="hidden"]');
-                // On reconstitue la phrase avec des virgules pour faciliter la comparaison ou espaces selon le cas
-                const words = Array.from(container.querySelector('.reorder-target').children).map(el => el.innerText);
-                hiddenInput.value = words.join(' '); 
-            });
-        });
-    }
-
-    // ================= CORRECTION =================
+    // --- CORRECTION ---
     document.getElementById('quiz-form').addEventListener('submit', (e) => {
         e.preventDefault();
         clearInterval(timerInterval);
-        
         let score = 0;
-        const total = currentQuestions.length;
         const resultsDiv = document.getElementById('corrections-list');
         resultsDiv.innerHTML = '';
 
         currentQuestions.forEach(q => {
-            let userRep = "";
-            let isCorrect = false;
-
-            // Récupération réponse
-            if (q.type === 'remplir_les_blancs') {
-                const input = document.querySelector(`input[name="q${q.id}"]`);
-                userRep = input ? input.value.trim() : "";
-                // Compare insensible à la casse
-                if(userRep.toLowerCase() === q.correct.toLowerCase()) isCorrect = true;
-            }
-            else if (q.type === 'remettre_en_ordre') {
-                const input = document.querySelector(`input[name="q${q.id}"]`);
-                userRep = input ? input.value : "";
-                
-                // Nettoyage pour comparaison (retirer ponctuation simple)
-                // La réponse correcte attendue de l'API doit être comparée à la construction de l'élève
-                // On normalise en remplaçant les virgules par des espaces pour standardiser
-                const cleanUser = userRep.replace(/,/g, ' ').replace(/\s+/g, ' ').toLowerCase().trim();
-                const cleanCorrect = q.correct.replace(/,/g, ' ').replace(/\s+/g, ' ').toLowerCase().trim();
-                
-                if(cleanUser === cleanCorrect) isCorrect = true;
-            }
-            else {
-                const checked = document.querySelector(`input[name="q${q.id}"]:checked`);
-                userRep = checked ? checked.value : "Aucune réponse";
-                if(userRep === q.correct) isCorrect = true;
-            }
-
+            // Appel à la fonction importée de exercises.js
+            const { isCorrect, userRep } = checkAnswer(q);
             if(isCorrect) score++;
 
-            // Affichage correction
             const detailDiv = document.createElement('div');
             detailDiv.className = `correction-detail ${isCorrect ? 'correct' : 'wrong'}`;
             
-            let correctionHTML = "";
-            if (isCorrect || score === total) {
-                // Si juste OU score parfait (100%), on montre la réponse (confirmation)
-                correctionHTML = `<br><strong>Réponse attendue:</strong> ${q.correct}`;
-            } else {
-                // Si faux ET pas parfait, on masque l'aide pour forcer à rejouer
-                correctionHTML = `<br><em>Indice masqué (Répétez pour trouver !)</em>`;
-            }
+            let correctionHTML = (isCorrect || score === currentQuestions.length) 
+                ? `<br><strong>Réponse:</strong> ${q.correct}` 
+                : `<br><em>Indice masqué</em>`;
 
-            detailDiv.innerHTML = `
-                <strong>Question:</strong> ${q.instruction}<br>
-                <strong>Votre réponse:</strong> ${userRep || "Vide"} ${isCorrect ? "✅" : "❌"}
-                ${correctionHTML}
-            `;
+            detailDiv.innerHTML = `<strong>Q:</strong> ${q.instruction}<br><strong>Vous:</strong> ${userRep} ${isCorrect ? "✅" : "❌"}${correctionHTML}`;
             resultsDiv.appendChild(detailDiv);
         });
 
-        // Affichage écran résultats
         document.getElementById('exercise-screen').classList.add('hidden');
         document.getElementById('result-screen').classList.remove('hidden');
         
         const banner = document.getElementById('score-banner');
-        if(score === total) {
+        if(score === currentQuestions.length) {
             banner.className = "result-box success";
-            banner.innerHTML = `Bravo ! ${score}/${total} 🏆`;
+            banner.innerHTML = `Bravo ! ${score}/${currentQuestions.length} 🏆`;
             document.getElementById('new-btn').classList.remove('hidden');
             document.getElementById('retry-btn').classList.add('hidden');
         } else {
             banner.className = "result-box failure";
-            banner.innerHTML = `Score : ${score}/${total}. Courage ! 💪`;
+            banner.innerHTML = `Score : ${score}/${currentQuestions.length}. Courage !`;
             document.getElementById('new-btn').classList.add('hidden');
             document.getElementById('retry-btn').classList.remove('hidden');
         }
-
-        // Sauvegarde local storage
-        const history = JSON.parse(localStorage.getItem('app_history') || '[]');
-        history.unshift({
-            date: new Date().toLocaleDateString(),
-            theme: document.getElementById('theme-select').value,
-            score: `${score}/${total}`
-        });
-        localStorage.setItem('app_history', JSON.stringify(history));
+        
+        // Sauvegarde historique
+        saveHistory(score, currentQuestions.length);
     });
 
-    // ================= LOGIQUE DE RÉPÉTITION (SHUFFLE) =================
-    function retryExercise() {
-        // Mélange des questions existantes (Fisher-Yates shuffle)
-        for (let i = currentQuestions.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [currentQuestions[i], currentQuestions[j]] = [currentQuestions[j], currentQuestions[i]];
-        }
-        
-        // Retour écran exercice
-        document.getElementById('result-screen').classList.add('hidden');
-        startExercise(); // Relance le rendu et le timer
+    function saveHistory(score, total) {
+        const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        history.unshift({
+            date: new Date().toLocaleDateString(),
+            theme: themeSelect.value,
+            score: `${score}/${total}`
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
     }
 
-    function showHistory() {
+    // --- FONCTIONS GLOBALES (pour les onclick HTML) ---
+    window.retryExercise = function() {
+        currentQuestions = currentQuestions.sort(() => Math.random() - 0.5);
+        document.getElementById('result-screen').classList.add('hidden');
+        startExercise();
+    };
+
+    window.showHistory = function() {
         document.getElementById('selection-screen').classList.add('hidden');
         document.getElementById('history-screen').classList.remove('hidden');
-        const hist = JSON.parse(localStorage.getItem('app_history') || '[]');
+        const hist = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
         const container = document.getElementById('history-content');
-        if(hist.length === 0) container.innerHTML = "<p>Aucun historique.</p>";
-        else {
-            container.innerHTML = hist.map(h => `<div style="padding:10px; border-bottom:1px solid #ccc">${h.date} - ${h.theme} : <strong>${h.score}</strong></div>`).join('');
-        }
-    }
-
-    // Données de simulation si API en panne
-    function simulateData(type) {
-        if(type === 'remplir_les_blancs') return [
-            {id:1, instruction:"Complète", content:"Le chat (manger) %BLANK% la souris.", correct:"mange"},
-            {id:2, instruction:"Complète", content:"Nous (aller) %BLANK% au parc.", correct:"allons"},
-            {id:3, instruction:"Complète", content:"Ils (finir) %BLANK% leurs devoirs.", correct:"finissent"},
-            {id:4, instruction:"Complète", content:"Je (être) %BLANK% content.", correct:"suis"},
-            {id:5, instruction:"Complète", content:"Vous (avoir) %BLANK% faim.", correct:"avez"}
-        ];
-        return [
-            {id:1, instruction:"Vrai ou Faux", content:"Le ciel est vert.", options:["Vrai","Faux"], correct:"Faux"},
-            {id:2, instruction:"Vrai ou Faux", content:"Le feu brûle.", options:["Vrai","Faux"], correct:"Vrai"},
-            {id:3, instruction:"Vrai ou Faux", content:"2 + 2 = 4", options:["Vrai","Faux"], correct:"Vrai"},
-            {id:4, instruction:"Vrai ou Faux", content:"Les poissons volent.", options:["Vrai","Faux"], correct:"Faux"},
-            {id:5, instruction:"Vrai ou Faux", content:"L'été il fait chaud.", options:["Vrai","Faux"], correct:"Vrai"}
-        ];
-    }
+        container.innerHTML = hist.length ? hist.map(h => `<div style="padding:10px; border-bottom:1px solid #ccc">${h.date} - ${h.theme}: <strong>${h.score}</strong></div>`).join('') : "<p>Vide.</p>";
+    };
 </script>
 
 </body>
