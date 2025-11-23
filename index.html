@@ -300,11 +300,13 @@
         }
     });
 
-    // FONCTION FAILOVER ROBUSTE (KEYS + MODELS + ENDPOINTS)
+    // FONCTION FAILOVER INTELLIGENTE (MULTI-MODÈLES & MULTI-CLÉS)
     async function fetchWithFailover(prompt) {
+        // Boucle sur les CLÉS
         for (let keyIndex = 0; keyIndex < API_KEYS.length; keyIndex++) {
             let apiKey = API_KEYS[keyIndex].trim();
             
+            // Boucle sur les MODÈLES
             for (const config of CONFIGS_TO_TRY) {
                 try {
                     console.log(`Test Clé ${keyIndex + 1} | Version: ${config.version} | Modèle: ${config.model}`);
@@ -333,7 +335,7 @@
                 }
             }
         }
-        throw new Error("Aucune combinaison n'a fonctionné.");
+        throw new Error("Aucune combinaison Clé/Modèle n'a fonctionné.");
     }
 
     function startExercise() {
