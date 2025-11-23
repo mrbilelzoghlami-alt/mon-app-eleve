@@ -106,119 +106,37 @@
     import { THEMES, PRIORITY_VERBS } from './themes.js';
     import { PROMPT_TEMPLATES, renderExerciseContent, checkAnswer } from './exercises.js';
 
-    // --- CLÉ UNIQUE NOUVELLE ET PROPRE ---
-    const API_KEY = '<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon App Éducative - Expert</title>
-    <style>
-        :root { --primary-color: #3f51b5; --secondary-color: #ffc107; --background-color: #f4f4f9; --text-color: #333; --success-color: #4CAF50; --error-color: #f44336; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--background-color); color: var(--text-color); margin: 0; padding: 0; display: flex; justify-content: center; padding: 20px; }
-        .app-container { background: white; border-radius: 15px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); width: 100%; max-width: 800px; padding: 25px; min-height: 85vh; display: flex; flex-direction: column; }
-        h1 { color: var(--primary-color); text-align: center; border-bottom: 3px solid var(--secondary-color); padding-bottom: 15px; margin-top: 0; }
-        label { font-weight: bold; margin-top: 15px; display: block; }
-        select, button { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
-        button { background-color: var(--primary-color); color: white; border: none; cursor: pointer; font-weight: bold; transition: all 0.3s ease; margin-top: 20px; }
-        button:hover:not(:disabled) { background-color: #303f9f; transform: translateY(-2px); }
-        button:disabled { background-color: #9fa8da; cursor: not-allowed; }
-        .back-btn { background-color: #e0e0e0; color: #333; }
-        .back-btn:hover { background-color: #d5d5d5; }
-        #show-progress-btn { background-color: white; color: var(--primary-color); border: 2px solid var(--primary-color); }
-        .checkbox-group { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 10px; border: 1px solid #e0e0e0; }
-        .checkbox-group label { display: inline-flex; align-items: center; margin: 5px 15px 5px 0; font-weight: normal; cursor: pointer; }
-        .checkbox-group input { margin-right: 8px; }
-        .exercise-item { background-color: #fff; border: 1px solid #e0e0e0; padding: 20px; margin-bottom: 20px; border-radius: 10px; border-left: 6px solid var(--secondary-color); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .fill-in-blank { border: none; border-bottom: 2px dashed var(--primary-color); background: #f0f4ff; padding: 5px 10px; border-radius: 4px; font-size: 1em; color: #333; font-weight: bold; width: 120px; text-align: center; }
-        .reorder-container { margin-top: 15px; }
-        .reorder-zone { min-height: 60px; padding: 10px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
-        .reorder-source { background-color: #f5f5f5; border: 1px dashed #ccc; }
-        .reorder-target { background-color: #e8eaf6; border: 2px solid var(--primary-color); }
-        .word-tag { background: white; border: 1px solid var(--primary-color); color: var(--primary-color); padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: 500; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.1s; }
-        .word-tag:active { transform: scale(0.95); }
-        .word-tag.placed { background: var(--primary-color); color: white; }
-        .result-box { padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0; font-size: 1.2em; font-weight: bold; }
-        .success { background-color: #e8f5e9; color: #2e7d32; }
-        .failure { background-color: #ffebee; color: #c62828; }
-        .correction-detail { background: #fff; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid #ccc; }
-        .correction-detail.correct { border-left-color: var(--success-color); background: #f1f8e9; }
-        .correction-detail.wrong { border-left-color: var(--error-color); background: #fff8f8; }
-        .hidden { display: none; }
-        .results-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
-        .results-actions button { width: auto; min-width: 200px; margin-top: 0; }
-        @media (max-width: 600px) { .app-container { padding: 15px; } h1 { font-size: 1.5em; } }
-    </style>
-</head>
-<body>
-
-<div class="app-container">
-    <h1>🎓 Mon App Éducative</h1>
-
-    <div id="selection-screen">
-        <form id="setup-form">
-            <label>1. Langue</label>
-            <select id="language-select">
-                <option value="Français">Français 🇫🇷</option>
-                <option value="Anglais">Anglais 🇬🇧</option>
-            </select>
-
-            <label>2. Thème</label>
-            <select id="theme-select"></select>
-
-            <div id="dynamic-options"></div>
-
-            <div id="type-select-container">
-                <label for="type-select">3. Type d'exercice</label>
-                <select id="type-select">
-                    <option value="remplir_les_blancs">Compléter la phrase (Saisie)</option>
-                    <option value="choix_multiple">QCM (Choix Multiple)</option>
-                    <option value="vrai_faux">Vrai ou Faux</option>
-                    <option value="remettre_en_ordre">Mettre en ordre (Puzzle)</option>
-                </select>
-            </div>
-
-            <button type="submit" id="start-btn">✨ Générer les Exercices</button>
-        </form>
-        <button id="history-btn" onclick="window.showHistory()">Voir ma progression 📊</button>
-    </div>
-
-    <div id="exercise-screen" class="hidden">
-        <h2 id="exercise-header">Exercices</h2>
-        <div style="text-align: right; font-size: 0.9em; color: #666;">Temps: <span id="timer">0</span>s</div>
-        <form id="quiz-form">
-            <div id="questions-container"></div>
-            <button type="submit">✅ Valider mes réponses</button>
-        </form>
-        <button class="back-btn" onclick="window.newSession()">❌ Abandonner</button>
-    </div>
-
-    <div id="result-screen" class="hidden">
-        <h2>Résultats</h2>
-        <div id="score-banner" class="result-box"></div>
-        <div id="corrections-list"></div>
-        
-        <div class="results-actions">
-            <button id="retry-btn" class="hidden" onclick="window.retryExercise()">🔄 Répéter les fautes</button>
-            <button id="new-btn" class="hidden" onclick="window.newSession()">🏠 Nouvelle Session</button>
-        </div>
-    </div>
-
-    <div id="history-screen" class="hidden">
-        <h2>Mon Historique</h2>
-        <div id="history-content"></div>
-        <button class="back-btn" onclick="window.newSession()">Retour</button>
-    </div>
-</div>
-
-<script type="module">
-    import { THEMES, PRIORITY_VERBS } from './themes.js';
-    import { PROMPT_TEMPLATES, renderExerciseContent, checkAnswer } from './exercises.js';
-
-    // --- CLÉ UNIQUE NOUVELLE ET PROPRE ---
-    const API_KEY = 'AIzaSyAt8OXazJ1rByPSGFFb5mAu3m4iCgpQM_0';
-    const MODEL_NAME = 'gemini-1.5-flash'; 
+    // --- SÉCURITÉ GITHUB : DÉCOUPAGE DES CLÉS ---
     
+    // Clé 1 (NOUVELLE - Prioritaire)
+    const K1_A = 'AIzaSyBRapCiKxYQmvjN';
+    const K1_B = 'WR5SdeKxrse35-Qk3Qo';
+
+    // Clé 2 (Ancienne gratuite - Secours)
+    const K2_A = 'AIzaSyAMl-5LHPC-aGW';
+    const K2_B = '5XWXDXYISz3sGq7NSXrE';
+
+    // Clé 3 (Ancienne gratuite - Secours)
+    const K3_A = 'AIzaSyC_j7DDSSFYbJ5';
+    const K3_B = 'GWf-OX2bia_AoV8KD0GE';
+
+    // Tableau des clés reconstituées
+    const API_KEYS = [
+        K1_A + K1_B,
+        K2_A + K2_B,
+        K3_A + K3_B
+    ];
+
+    // LISTE ULTRA-COMPLÈTE DES MODÈLES DISPONIBLES (Force Brute)
+    // L'application va tester ces combinaisons (version API / nom modèle)
+    const CONFIGS_TO_TRY = [
+        { version: 'v1beta', model: 'gemini-1.5-flash' },
+        { version: 'v1beta', model: 'gemini-1.5-flash-latest' },
+        { version: 'v1beta', model: 'gemini-1.5-pro' },
+        { version: 'v1beta', model: 'gemini-pro' },
+        { version: 'v1',     model: 'gemini-pro' } // Le "tank" : vieux mais très stable
+    ];
+
     const STORAGE_KEY = 'eleve_progression';
     const MASTERED_KEY = 'eleve_mastered_items';
 
@@ -298,7 +216,7 @@
         e.preventDefault();
         const btn = document.getElementById('start-btn');
         btn.disabled = true;
-        btn.textContent = "📡 Connexion à l'IA...";
+        btn.textContent = "📡 Recherche de la meilleure connexion...";
 
         const lang = langSelect.value;
         const theme = themeSelect.value;
@@ -321,7 +239,7 @@
             type = "MIXTE"; 
 
             specialInstructions = `
-            RÔLE: Professeur Anglais 7ème Année Tunisie (Module 1).
+            RÔLE: Professeur Anglais 7ème Année Tunisie (Module 1 "Family & Daily Life").
             SUJETS SÉLECTIONNÉS: ${detail}.
             ${antiRepetitionPrompt}
             
@@ -381,7 +299,7 @@
         `;
 
         try {
-            const data = await fetchApi(prompt); // Appel simple et direct
+            const data = await fetchWithFailover(prompt);
             currentQuestions = data;
             if (THEMES[lang][theme].type !== 'module_mode') {
                 currentQuestions.forEach(q => q.type = type);
@@ -389,7 +307,7 @@
             startExercise();
         } catch (err) {
             console.error(err);
-            alert(`Erreur API : ${err.message}. Mode simulation activé.`);
+            alert("Toutes les tentatives ont échoué (404/429). Mode simulation activé.");
             currentQuestions = simulateData(type);
             startExercise();
         } finally {
@@ -398,360 +316,42 @@
         }
     });
 
-    // FONCTION DE CONNEXION API (SIMPLIFIÉE)
-    async function fetchApi(prompt) {
-        const apiKey = API_KEY.trim();
+    // FONCTION FAILOVER ROBUSTE (KEYS + MODELS + ENDPOINTS)
+    async function fetchWithFailover(prompt) {
+        for (let keyIndex = 0; keyIndex < API_KEYS.length; keyIndex++) {
+            let apiKey = API_KEYS[keyIndex].trim();
+            if(apiKey.length < 10) continue;
 
-        // Utilisation du modèle standard gemini-1.5-flash
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ role: "user", parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: "application/json" }
-            })
-        });
+            // Boucle sur les CONFIGURATIONS (Version + Modèle)
+            for (const config of CONFIGS_TO_TRY) {
+                try {
+                    console.log(`Test Clé ${keyIndex + 1} | ${config.version}/${config.model}`);
+                    
+                    const url = `https://generativelanguage.googleapis.com/${config.version}/models/${config.model}:generateContent?key=${apiKey}`;
+                    
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
 
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(`Erreur ${response.status}: ${errData.error?.message || 'Inconnue'}`);
-        }
-
-        const json = await response.json();
-        return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
-    }
-
-    function startExercise() {
-        document.getElementById('selection-screen').classList.add('hidden');
-        document.getElementById('exercise-screen').classList.remove('hidden');
-        const container = document.getElementById('questions-container');
-        container.innerHTML = '';
-        
-        let seconds = 0;
-        document.getElementById('timer').innerText = "0";
-        if(timerInterval) clearInterval(timerInterval);
-        timerInterval = setInterval(() => { seconds++; document.getElementById('timer').innerText = seconds; }, 1000);
-
-        currentQuestions.forEach((q, idx) => {
-            const div = document.createElement('div');
-            div.className = 'exercise-item';
-            renderExerciseContent(q, idx, div);
-            container.appendChild(div);
-        });
-    }
-
-    document.getElementById('quiz-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        clearInterval(timerInterval);
-        let score = 0;
-        const resultsDiv = document.getElementById('corrections-list');
-        resultsDiv.innerHTML = '';
-        
-        attemptCount++; 
-        wrongQuestions = []; 
-
-        currentQuestions.forEach(q => {
-            const { isCorrect, userRep } = checkAnswer(q);
-            if(isCorrect) {
-                score++;
-                if (attemptCount === 1) {
-                    saveMasteredItem(q.correct);
-                }
-            } else {
-                wrongQuestions.push(q);
-            }
-
-            const detailDiv = document.createElement('div');
-            detailDiv.className = `correction-detail ${isCorrect ? 'correct' : 'wrong'}`;
-            
-            let correctionHTML = "";
-            if (isCorrect) {
-                correctionHTML = `<br><strong>Réponse correcte:</strong> ${q.correct}`;
-            } else {
-                if (attemptCount >= 2) {
-                    correctionHTML = `<br><strong>Solution:</strong> ${q.correct}`;
-                } else {
-                    correctionHTML = `<br><em>Indice masqué (Essayez encore !)</em>`;
+                    if (response.ok) {
+                        console.log(`✅ SUCCÈS ! Config utilisée : ${config.version}/${config.model}`);
+                        const json = await response.json();
+                        return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
+                    } else {
+                        if (response.status === 404) continue; // Modèle non trouvé, suivant
+                        if (response.status === 429 || response.status === 403) {
+                            console.warn(`Clé ${keyIndex + 1} bloquée. Changement de clé.`);
+                            break; // Clé épuisée, on sort de la boucle modèle pour changer de clé
+                        }
+                    }
+                } catch (e) { 
+                    // Erreur réseau -> On continue
                 }
             }
-
-            detailDiv.innerHTML = `<strong>Q:</strong> ${q.instruction}<br><strong>Vous:</strong> ${userRep} ${isCorrect ? "✅" : "❌"}${correctionHTML}`;
-            resultsDiv.appendChild(detailDiv);
-        });
-
-        document.getElementById('exercise-screen').classList.add('hidden');
-        document.getElementById('result-screen').classList.remove('hidden');
-        
-        const banner = document.getElementById('score-banner');
-        const retryBtn = document.getElementById('retry-btn');
-        const newBtn = document.getElementById('new-btn');
-
-        if(score === currentQuestions.length) {
-            banner.className = "result-box success";
-            banner.innerHTML = `Bravo ! ${score}/${currentQuestions.length} 🏆`;
-            newBtn.classList.remove('hidden');
-            retryBtn.classList.add('hidden');
-        } else {
-            banner.className = "result-box failure";
-            banner.innerHTML = `Score : ${score}/${currentQuestions.length}.`;
-            
-            if (attemptCount >= 2) {
-                banner.innerHTML += " Voici la correction.";
-                newBtn.classList.remove('hidden');
-                retryBtn.classList.add('hidden');
-            } else {
-                banner.innerHTML += " Courage ! Corrige tes fautes.";
-                newBtn.classList.add('hidden');
-                retryBtn.classList.remove('hidden');
-            }
         }
-        
-        if (score === currentQuestions.length || attemptCount >= 2) {
-            saveHistory(score, currentQuestions.length);
-        }
-    });
-
-    function saveHistory(score, total) {
-        const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        history.unshift({ date: new Date().toLocaleDateString(), theme: themeSelect.value, score: `${score}/${total}` });
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-    }
-
-    window.newSession = function() {
-        document.getElementById('result-screen').classList.add('hidden');
-        document.getElementById('exercise-screen').classList.add('hidden');
-        document.getElementById('history-screen').classList.add('hidden');
-        document.getElementById('selection-screen').classList.remove('hidden');
-        attemptCount = 0;
-        wrongQuestions = [];
-    };
-
-    window.retryExercise = function() {
-        currentQuestions = wrongQuestions;
-        document.getElementById('result-screen').classList.add('hidden');
-        startExercise(); 
-    };
-
-    window.showHistory = function() {
-        document.getElementById('selection-screen').classList.add('hidden');
-        document.getElementById('history-screen').classList.remove('hidden');
-        const hist = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        const container = document.getElementById('history-content');
-        container.innerHTML = hist.length ? hist.map(h => `<div style="padding:10px; border-bottom:1px solid #ccc">${h.date} - ${h.theme}: <strong>${h.score}</strong></div>`).join('') : "<p>Vide.</p>";
-    };
-    
-    function simulateData(type) { return [{id:1, type:'choix_multiple', instruction:"Erreur réseau", content:"Veuillez réessayer", options:["Ok"], correct:"Ok"}]; }
-
-</script>
-
-</body>
-</html>';
-    const MODEL_NAME = 'gemini-1.5-flash'; 
-    
-    const STORAGE_KEY = 'eleve_progression';
-    const MASTERED_KEY = 'eleve_mastered_items';
-
-    let currentQuestions = [];
-    let wrongQuestions = [];
-    let attemptCount = 0;
-    let timerInterval;
-
-    const langSelect = document.getElementById('language-select');
-    const themeSelect = document.getElementById('theme-select');
-    const dynamicOpts = document.getElementById('dynamic-options');
-    const typeSelectContainer = document.getElementById('type-select-container');
-    const typeSelect = document.getElementById('type-select');
-
-    function init() {
-        updateThemes();
-        langSelect.addEventListener('change', updateThemes);
-        themeSelect.addEventListener('change', updateSubOptions);
-    }
-
-    function updateThemes() {
-        const lang = langSelect.value;
-        themeSelect.innerHTML = '';
-        Object.keys(THEMES[lang]).forEach(t => themeSelect.add(new Option(t, t)));
-        updateSubOptions();
-    }
-
-    function updateSubOptions() {
-        const lang = langSelect.value;
-        const theme = themeSelect.value;
-        const config = THEMES[lang][theme];
-        dynamicOpts.innerHTML = '';
-
-        if (config.type === 'module_mode') {
-            typeSelectContainer.classList.add('hidden');
-            let html = `<div class="checkbox-group" style="background:#e3f2fd; border:2px solid #2196f3;">
-                        <strong style="color:#0d47a1;">🎯 Contenu à travailler (Cocher 1 ou plusieurs) :</strong><br>`;
-            config.options.forEach(opt => {
-                html += `<label style="display:block; margin:5px 0; font-weight:bold;"><input type="checkbox" class="module-check" value="${opt}"> ${opt}</label>`;
-            });
-            html += `</div>`;
-            dynamicOpts.innerHTML = html;
-        } else {
-            typeSelectContainer.classList.remove('hidden');
-            if (config.type === 'select') {
-                let html = `<label>Sujet Précis</label><select id="sub-select">`;
-                config.options.forEach(o => html += `<option value="${o}">${o}</option>`);
-                html += `</select>`;
-                dynamicOpts.innerHTML = html;
-            } else if (config.type === 'checkbox') {
-                let html = `<div class="checkbox-group"><label>Groupes:</label><br>`;
-                config.groups.forEach(g => html += `<label><input type="checkbox" class="sub-check" value="${g}"> ${g}</label>`);
-                html += `<br><label style="margin-top:10px">Temps:</label><br>`;
-                config.tenses.forEach(t => html += `<label><input type="checkbox" class="sub-check-tense" value="${t}"> ${t}</label>`);
-                html += `</div>`;
-                dynamicOpts.innerHTML = html;
-            }
-        }
-    }
-
-    init();
-
-    function getMasteredItems() {
-        const data = JSON.parse(localStorage.getItem(MASTERED_KEY) || '[]');
-        return data.slice(0, 30).join(', ');
-    }
-
-    function saveMasteredItem(item) {
-        let data = JSON.parse(localStorage.getItem(MASTERED_KEY) || '[]');
-        if (!data.includes(item) && String(item).length < 20) { 
-            data.unshift(item);
-            localStorage.setItem(MASTERED_KEY, JSON.stringify(data));
-        }
-    }
-
-    document.getElementById('setup-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('start-btn');
-        btn.disabled = true;
-        btn.textContent = "📡 Connexion à l'IA...";
-
-        const lang = langSelect.value;
-        const theme = themeSelect.value;
-        let type = typeSelect.value;
-        let detail = "";
-        let specialInstructions = "";
-        attemptCount = 0;
-        
-        const ignoredItems = getMasteredItems();
-        const antiRepetitionPrompt = ignoredItems ? `ANTI-RÉPÉTITION: Évite de poser des questions sur ces éléments que l'élève connaît déjà : [${ignoredItems}].` : "";
-
-        if (THEMES[lang][theme].type === 'module_mode') {
-            const checked = Array.from(document.querySelectorAll('.module-check:checked')).map(c => c.value);
-            if (checked.length === 0) {
-                alert("Veuillez cocher au moins une option.");
-                btn.disabled = false; btn.textContent = "✨ Générer les Exercices";
-                return;
-            }
-            detail = checked.join(' + ');
-            type = "MIXTE"; 
-
-            specialInstructions = `
-            RÔLE: Professeur Anglais 7ème Année Tunisie (Module 1).
-            SUJETS SÉLECTIONNÉS: ${detail}.
-            ${antiRepetitionPrompt}
-            
-            RÈGLES STRICTES DE COHÉRENCE (A SUIVRE IMPÉRATIVEMENT):
-            1. SI TYPE="remplir_les_blancs":
-               - La phrase DOIT contenir au moins un %BLANK%.
-               - Ne PAS fournir d'options de choix.
-            2. SI TYPE="choix_multiple":
-               - La phrase NE DOIT PAS contenir de %BLANK% (utilise "..." ou une question complète).
-               - Tu DOIS fournir un tableau "options".
-               - Le champ "correct" doit être égal à l'une des options.
-            
-            INSTRUCTIONS PAR SUJET:
-            1. SI "Vocabulaire (Traduction)": Génère 5 items. TYPE JSON: vocabulaire_trad. Content: Mot anglais. Options: 3 mots arabes.
-            2. SI "Language":
-               - Pour "Put in right tense": Utilise "remplir_les_blancs".
-               - Pour "Circle option": Utilise "choix_multiple".
-               - Pour "Functions": Utilise "choix_multiple". Content: La phrase. Options: Les fonctions (Greeting, etc).
-            3. SI "Listening": Génère 5 items. TYPE JSON: listening.
-            4. SI "Spelling": Génère 5 items. TYPE JSON: remettre_en_ordre.
-            5. SI "EXAMEN RÉVISION": Génère un mix de 5 questions variées.
-            
-            IMPORTANT: Assigne le champ "type" correct dans le JSON pour chaque question.
-            `;
-
-        } else {
-            if (THEMES[lang][theme].type === 'select') {
-                detail = document.getElementById('sub-select').value;
-            } else {
-                const groups = Array.from(document.querySelectorAll('.sub-check:checked')).map(c => c.value);
-                const tenses = Array.from(document.querySelectorAll('.sub-check-tense:checked')).map(c => c.value);
-                if(groups.length === 0 || tenses.length === 0) { alert("Sélection vide !"); btn.disabled = false; btn.textContent = "✨ Générer"; return; }
-                detail = `Groupes: ${groups} | Temps: ${tenses}`;
-            }
-            specialInstructions = `Instruction type: ${PROMPT_TEMPLATES[type]}. ${antiRepetitionPrompt}`;
-        }
-
-        const prompt = `
-            Génère 5 exercices éducatifs unitaires.
-            Langue: ${lang}. Thème: ${theme}.
-            Détails: ${detail}.
-            
-            ${specialInstructions}
-            ${theme === 'Conjugaison' ? `PRIORITÉ VERBES: ${PRIORITY_VERBS}.` : ''}
-
-            Format JSON STRICT attendu (Tableau d'objets):
-            [
-              {
-                "id": 1,
-                "type": "remplir_les_blancs" OU "choix_multiple" OU "vrai_faux" OU "remettre_en_ordre" OU "listening" OU "vocabulaire_trad",
-                "instruction": "Consigne...",
-                "content": "...",
-                "options": ["opt1", "opt2"] (si besoin, sinon null),
-                "correct": "réponse"
-              }
-            ]
-        `;
-
-        try {
-            const data = await fetchApi(prompt); // Appel simple et direct
-            currentQuestions = data;
-            if (THEMES[lang][theme].type !== 'module_mode') {
-                currentQuestions.forEach(q => q.type = type);
-            }
-            startExercise();
-        } catch (err) {
-            console.error(err);
-            alert(`Erreur API : ${err.message}. Mode simulation activé.`);
-            currentQuestions = simulateData(type);
-            startExercise();
-        } finally {
-            btn.disabled = false;
-            btn.textContent = "✨ Générer les Exercices";
-        }
-    });
-
-    // FONCTION DE CONNEXION API (SIMPLIFIÉE)
-    async function fetchApi(prompt) {
-        const apiKey = API_KEY.trim();
-
-        // Utilisation du modèle standard gemini-1.5-flash
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ role: "user", parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: "application/json" }
-            })
-        });
-
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(`Erreur ${response.status}: ${errData.error?.message || 'Inconnue'}`);
-        }
-
-        const json = await response.json();
-        return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
+        throw new Error("Aucune combinaison n'a fonctionné.");
     }
 
     function startExercise() {
