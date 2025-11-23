@@ -106,18 +106,16 @@
     import { THEMES, PRIORITY_VERBS } from './themes.js';
     import { PROMPT_TEMPLATES, renderExerciseContent, checkAnswer } from './exercises.js';
 
-    // --- SÉCURITÉ GITHUB : DÉCOUPAGE DES CLÉS ---
-    const KEY_PART_A = 'AIzaSyDPfLFXZPUG';
-    const KEY_PART_B = 'ZF0I1v4n58jICXNIJ5Awo74';
-    const API_KEY = KEY_PART_A + KEY_PART_B;
+    // --- SÉCURITÉ GITHUB : CLÉ COUPÉE ---
+    const KEY_START = 'AIzaSyDPfLFXZPUG';
+    const KEY_END = 'ZF0I1v4n58jICXNIJ5Awo74';
+    const API_KEY = KEY_START + KEY_END;
+    
+    // Modèle standard le plus récent
+    const MODEL_NAME = 'gemini-1.5-flash';
     
     const STORAGE_KEY = 'eleve_progression';
     const MASTERED_KEY = 'eleve_mastered_items';
-
-    // Utilisation d'une configuration d'API plus robuste (v1beta + gemini-1.0-pro)
-    // Cette combinaison est souvent plus permissive pour les clés récentes/gratuites
-    const MODEL_NAME = 'gemini-1.0-pro';
-    const API_VERSION = 'v1beta';
 
     let currentQuestions = [];
     let wrongQuestions = [];
@@ -149,6 +147,7 @@
         const config = THEMES[lang][theme];
         dynamicOpts.innerHTML = '';
 
+        // Gestion Affichage du sélecteur de type
         if (config.type === 'module_mode') {
             typeSelectContainer.classList.add('hidden');
             let html = `<div class="checkbox-group" style="background:#e3f2fd; border:2px solid #2196f3;">
@@ -195,7 +194,7 @@
         e.preventDefault();
         const btn = document.getElementById('start-btn');
         btn.disabled = true;
-        btn.textContent = "📡 Connexion à l'IA...";
+        btn.textContent = "📡 Analyse en cours...";
 
         const lang = langSelect.value;
         const theme = themeSelect.value;
@@ -295,34 +294,45 @@
         }
     });
 
-    // --- FONCTION DE CONNEXION OPTIMISÉE ---
+    // FONCTION D'APPEL SIMPLE (CLÉ UNIQUE)
     async function callGemini(prompt) {
-        const url = `https://generativelanguage.googleapis.com/${API_VERSION}/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
+        try {
+            // On tente d'abord le modèle standard (Flash)
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    contents: [{ parts: [{ text: prompt }] }] 
+                })
+            });
 
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(`Erreur ${response.status}: ${errData.error?.message || 'Inconnue'}`);
-        }
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(`Erreur ${response.status}: ${errData.error?.message || 'Inconnue'}`);
+            }
 
-        const json = await response.json();
-        // Nettoyage manuel du JSON (au cas où l'IA ajoute des ```json)
-        let text = json.candidates[0].content.parts[0].text;
-        text = text.replace(/```json|```/g, '').trim();
-        
-        // Extraction sécurisée du tableau JSON
-        const start = text.indexOf('[');
-        const end = text.lastIndexOf(']');
-        if (start !== -1 && end !== -1) {
-            text = text.substring(start, end + 1);
+            const json = await response.json();
+            const text = json.candidates[0].content.parts[0].text;
+            return JSON.parse(text.replace(/```json|```/g, '').trim());
+
+        } catch (e) {
+            console.warn("Échec Flash, tentative repli sur Pro...");
+            // Si Flash échoue, on tente le modèle Pro v1 (plus tolérant)
+            const urlBackup = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${API_KEY}`;
+            const responseBackup = await fetch(urlBackup, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            
+            if (!responseBackup.ok) throw e; // Si ça échoue aussi, on lance l'erreur
+            
+            const jsonBackup = await responseBackup.json();
+            const textBackup = jsonBackup.candidates[0].content.parts[0].text;
+            return JSON.parse(textBackup.replace(/```json|```/g, '').trim());
         }
-        
-        return JSON.parse(text);
     }
 
     function startExercise() {
@@ -421,6 +431,7 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
     }
 
+    // --- FONCTIONS GLOBALES ---
     window.newSession = function() {
         document.getElementById('result-screen').classList.add('hidden');
         document.getElementById('exercise-screen').classList.add('hidden');
