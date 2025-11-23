@@ -21,14 +21,6 @@
         .checkbox-group label { display: inline-flex; align-items: center; margin: 5px 15px 5px 0; font-weight: normal; cursor: pointer; }
         .checkbox-group input { margin-right: 8px; }
         .exercise-item { background-color: #fff; border: 1px solid #e0e0e0; padding: 20px; margin-bottom: 20px; border-radius: 10px; border-left: 6px solid var(--secondary-color); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .fill-in-blank { border: none; border-bottom: 2px dashed var(--primary-color); background: #f0f4ff; padding: 5px 10px; border-radius: 4px; font-size: 1em; color: #333; font-weight: bold; width: 120px; text-align: center; }
-        .reorder-container { margin-top: 15px; }
-        .reorder-zone { min-height: 60px; padding: 10px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
-        .reorder-source { background-color: #f5f5f5; border: 1px dashed #ccc; }
-        .reorder-target { background-color: #e8eaf6; border: 2px solid var(--primary-color); }
-        .word-tag { background: white; border: 1px solid var(--primary-color); color: var(--primary-color); padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: 500; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.1s; }
-        .word-tag:active { transform: scale(0.95); }
-        .word-tag.placed { background: var(--primary-color); color: white; }
         .result-box { padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0; font-size: 1.2em; font-weight: bold; }
         .success { background-color: #e8f5e9; color: #2e7d32; }
         .failure { background-color: #ffebee; color: #c62828; }
@@ -106,10 +98,16 @@
     import { THEMES, PRIORITY_VERBS } from './themes.js';
     import { PROMPT_TEMPLATES, renderExerciseContent, checkAnswer } from './exercises.js';
 
-    // --- CONFIGURATION : UNE SEULE CLÉ NOUVELLE ET PROPRE ---
-    const API_KEY = 'AIzaSyAt8OXazJ1rByPSGFFb5mAu3m4iCgpQM_0';
-    const MODEL_NAME = 'gemini-1.5-flash';
+    // VOS CLÉS (La première est celle que vous venez de montrer, si elle est expirée, renouvelez-la)
+    const API_KEYS = [
+        'AIzaSyA0HQlzOrz7eN_prymlJ_RWNEGr4xknOas', 
+        'AIzaSyAMl-5LHPC-aGW5XWXDXYISz3sGq7NSXrE',
+        'AIzaSyC_j7DDSSFYbJ5GWf-OX2bia_AoV8KD0GE'
+    ];
     
+    // LISTE DES MODÈLES À TESTER (Du plus récent au plus compatible)
+    const MODELS_TO_TRY = ['gemini-1.5-flash', 'gemini-pro', 'gemini-1.0-pro'];
+
     const STORAGE_KEY = 'eleve_progression';
     const MASTERED_KEY = 'eleve_mastered_items';
 
@@ -189,7 +187,7 @@
         e.preventDefault();
         const btn = document.getElementById('start-btn');
         btn.disabled = true;
-        btn.textContent = "📡 Connexion à l'IA...";
+        btn.textContent = "📡 Connexion intelligente...";
 
         const lang = langSelect.value;
         const theme = themeSelect.value;
@@ -201,6 +199,7 @@
         const ignoredItems = getMasteredItems();
         const antiRepetitionPrompt = ignoredItems ? `ANTI-RÉPÉTITION: Évite de poser des questions sur ces éléments que l'élève connaît déjà : [${ignoredItems}].` : "";
 
+        // --- LOGIQUE DU MODULE 1 (7TH GRADE) ---
         if (THEMES[lang][theme].type === 'module_mode') {
             const checked = Array.from(document.querySelectorAll('.module-check:checked')).map(c => c.value);
             if (checked.length === 0) {
@@ -211,31 +210,26 @@
             detail = checked.join(' + ');
             type = "MIXTE"; 
 
+            // PROMPT EXPERT & STRICT
             specialInstructions = `
             RÔLE: Professeur Anglais 7ème Année Tunisie (Module 1).
-            SUJETS SÉLECTIONNÉS: ${detail}.
+            SUJETS: ${detail}.
             ${antiRepetitionPrompt}
             
-            RÈGLES STRICTES DE COHÉRENCE (A SUIVRE IMPÉRATIVEMENT):
-            1. SI TYPE="remplir_les_blancs":
-               - La phrase DOIT contenir au moins un %BLANK%.
-               - Ne PAS fournir d'options de choix.
-            2. SI TYPE="choix_multiple":
-               - La phrase NE DOIT PAS contenir de %BLANK% (utilise "..." ou une question complète).
-               - Tu DOIS fournir un tableau "options".
-               - Le champ "correct" doit être égal à l'une des options.
+            RÈGLES D'OR (A SUIVRE OU ÉCHEC):
+            1. "remplir_les_blancs": La phrase DOIT avoir un %BLANK%. PAS d'options. Correct = le mot.
+            2. "choix_multiple": La phrase NE DOIT PAS avoir de %BLANK%. Options OBLIGATOIRES. Correct = une option.
             
             INSTRUCTIONS PAR SUJET:
-            1. SI "Vocabulaire (Traduction)": Génère 5 items. TYPE JSON: vocabulaire_trad. Content: Mot anglais. Options: 3 mots arabes.
-            2. SI "Language":
-               - Pour "Put in right tense": Utilise "remplir_les_blancs".
-               - Pour "Circle option": Utilise "choix_multiple".
-               - Pour "Functions": Utilise "choix_multiple". Content: La phrase. Options: Les fonctions (Greeting, etc).
-            3. SI "Listening": Génère 5 items. TYPE JSON: listening.
-            4. SI "Spelling": Génère 5 items. TYPE JSON: remettre_en_ordre.
-            5. SI "EXAMEN RÉVISION": Génère un mix de 5 questions variées.
+            - Vocabulaire (Traduction): TYPE="vocabulaire_trad". Mot anglais -> 3 Choix Arabes.
+            - Language (Grammaire): 
+                 SI "Put in right tense": Utilise "remplir_les_blancs".
+                 SI "Circle option": Utilise "choix_multiple".
+            - Listening: TYPE="listening". Audio + QCM.
+            - Spelling: TYPE="remettre_en_ordre". Lettres mélangées.
+            - EXAMEN: Mix de 5 questions.
             
-            IMPORTANT: Assigne le champ "type" correct dans le JSON pour chaque question.
+            IMPORTANT: Assigne le bon "type" dans le JSON.
             `;
 
         } else {
@@ -280,7 +274,7 @@
             startExercise();
         } catch (err) {
             console.error(err);
-            alert(`Erreur API : ${err.message}. Vérifiez votre clé.`);
+            alert("Erreur API (Clés expirées ou Modèles introuvables). Mode simulation.");
             currentQuestions = simulateData(type);
             startExercise();
         } finally {
@@ -289,36 +283,48 @@
         }
     });
 
-    // FONCTION DE CONNEXION API (VERSION SIMPLE ET EFFICACE AVEC UNE SEULE CLÉ)
+    // --- FONCTION INTELLIGENTE : TESTE CLES ET MODELES ---
     async function fetchWithFailover(prompt) {
-        const apiKey = API_KEY.trim();
+        // 1. Boucle sur les Clés
+        for (let keyIndex = 0; keyIndex < API_KEYS.length; keyIndex++) {
+            let apiKey = API_KEYS[keyIndex].trim();
+            
+            // 2. Boucle sur les Modèles
+            for (const model of MODELS_TO_TRY) {
+                try {
+                    console.log(`Tentative: Clé ${keyIndex + 1} + Modèle ${model}`);
+                    
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                    
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
 
-        // Le modèle le plus stable et standard
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
-        
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ role: "user", parts: [{ text: prompt }] }],
-                    generationConfig: { responseMimeType: "application/json" }
-                })
-            });
-
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                // Si 404/403/400, on lance l'erreur pour activer la simulation
-                throw new Error(`Erreur ${response.status}: ${errData.error?.message || 'Inconnue'}`);
+                    if (response.ok) {
+                        console.log("✅ SUCCÈS !");
+                        const json = await response.json();
+                        return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
+                    } 
+                    
+                    // Gestion des erreurs spécifiques
+                    if (response.status === 404) {
+                        // Modèle pas trouvé -> On essaye le modèle suivant avec la même clé
+                        continue;
+                    }
+                    if (response.status === 400 || response.status === 403 || response.status === 429) {
+                        // Clé expirée ou invalide -> On change de clé
+                        console.warn(`Clé ${keyIndex + 1} invalide/épuisée.`);
+                        break; // Sort de la boucle modèles pour passer à la clé suivante
+                    }
+                    
+                } catch (e) { 
+                    console.warn(`Erreur réseau: ${e.message}`);
+                }
             }
-
-            const json = await response.json();
-            return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
-
-        } catch (e) { 
-            // Lance l'erreur pour la gestion du mode simulation
-            throw new Error(`Connexion échouée. ${e.message}`);
         }
+        throw new Error("Aucune combinaison n'a fonctionné.");
     }
 
     function startExercise() {
