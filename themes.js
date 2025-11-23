@@ -1,7 +1,5 @@
 // themes.js
-// Ce fichier contient la structure des matières et les listes de vocabulaire
-
-export const PRIORITY_VERBS = "être, avoir, marcher, manger, commencer, appeler, acheter, envoyer, nettoyer, aller, courir, voir, lire, se promener, réussir, savoir, vouloir, pouvoir, écrire, partir, vivre, venir, rendre, mettre, faire, dire";
+export const PRIORITY_VERBS = "be, have got, get up, wash, dress, eat, drink, go, watch, play, listen, read, write, speak, enjoy, like, love, study, do, brush";
 
 export const THEMES = {
     "Français": {
@@ -13,20 +11,21 @@ export const THEMES = {
         "Grammaire": { 
             type: "select", 
             options: ["Les déterminants", "L'adjectif qualificatif", "Le sujet et le verbe", "Le pluriel des noms"] 
-        },
-        "Vocabulaire": { 
-            type: "select", 
-            options: ["Les émotions", "L'école", "La maison", "Les animaux"] 
         }
     },
     "Anglais": {
-        "Vocabulary": { 
-            type: "select", 
-            options: ["Family Members", "Animals", "Colors & Numbers", "School Objects", "House & Furniture"] 
+        "Module 1 (7ème Année)": {
+            type: "module_mode", // Type spécial pour déclencher l'interface simplifiée
+            options: [
+                "Listening (Compréhension & Sons)",
+                "Language (Grammaire & Vocabulaire)",
+                "Spelling (Orthographe)",
+                "🛑 EXAMEN RÉVISION (Devoir Type)"
+            ]
         },
-        "Grammar": { 
+        "Vocabulaire Général": { 
             type: "select", 
-            options: ["To Be (Present)", "To Have (Present)", "Plural of Nouns", "Present Continuous"] 
+            options: ["Animals", "Colors & Numbers", "School Objects", "House"] 
         }
     }
 };
