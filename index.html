@@ -106,24 +106,17 @@
     import { THEMES, PRIORITY_VERBS } from './themes.js';
     import { PROMPT_TEMPLATES, renderExerciseContent, checkAnswer } from './exercises.js';
 
-    // --- VOS CLÉS API ---
     const API_KEYS = [
         'AIzaSyA0HQlzOrz7eN_prymlJ_RWNEGr4xknOas', 
         'AIzaSyAMl-5LHPC-aGW5XWXDXYISz3sGq7NSXrE',
         'AIzaSyC_j7DDSSFYbJ5GWf-OX2bia_AoV8KD0GE'
     ];
     
+    // REVENONS AU MODÈLE STANDARD QUI FONCTIONNAIT
+    const MODEL_NAME = 'gemini-1.5-flash';
+    
     const STORAGE_KEY = 'eleve_progression';
     const MASTERED_KEY = 'eleve_mastered_items';
-
-    // --- CONFIGURATIONS DE SECOURS (Version API + Nom Modèle) ---
-    // L'application testera ces adresses jusqu'à ce qu'une fonctionne (Code 200)
-    const ENDPOINTS_TO_TRY = [
-        { version: 'v1beta', model: 'gemini-1.5-flash' },        // Standard moderne
-        { version: 'v1beta', model: 'gemini-pro' },              // Classique beta
-        { version: 'v1',     model: 'gemini-pro' },              // STABLE (Vieux comptes)
-        { version: 'v1beta', model: 'gemini-1.5-flash-latest' }  // Dernier recours
-    ];
 
     let currentQuestions = [];
     let wrongQuestions = [];
@@ -201,7 +194,7 @@
         e.preventDefault();
         const btn = document.getElementById('start-btn');
         btn.disabled = true;
-        btn.textContent = "📡 Recherche connexion stable...";
+        btn.textContent = "📡 Connexion à l'IA...";
 
         const lang = langSelect.value;
         const theme = themeSelect.value;
@@ -292,7 +285,7 @@
             startExercise();
         } catch (err) {
             console.error(err);
-            alert("Toutes les tentatives ont échoué (404/429). Mode simulation activé.");
+            alert("Erreur API. Mode simulation activé.");
             currentQuestions = simulateData(type);
             startExercise();
         } finally {
@@ -301,46 +294,39 @@
         }
     });
 
-    // --- FONCTION FAILOVER ULTIME (Endpoints + Modèles) ---
+    // FONCTION DE CONNEXION API (RETOUR À LA VERSION SIMPLE ET EFFICACE)
     async function fetchWithFailover(prompt) {
-        for (let keyIndex = 0; keyIndex < API_KEYS.length; keyIndex++) {
-            let apiKey = API_KEYS[keyIndex].trim();
-            
-            // On boucle sur les configurations (Version API + Modèle)
-            for (const config of ENDPOINTS_TO_TRY) {
-                try {
-                    console.log(`Test Clé ${keyIndex + 1} | ${config.version}/${config.model}`);
-                    
-                    // Construction de l'URL dynamique
-                    const url = `https://generativelanguage.googleapis.com/${config.version}/models/${config.model}:generateContent?key=${apiKey}`;
-                    
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                    });
+        for (let i = 0; i < API_KEYS.length; i++) {
+            try {
+                const apiKey = API_KEYS[i].trim();
+                console.log(`Essai Clé ${i + 1}`);
+                
+                // Utilisation de v1beta + gemini-1.5-flash (Configuration standard)
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ role: "user", parts: [{ text: prompt }] }],
+                        // IMPORTANT: On remet la config JSON qui aide le modèle
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
 
-                    if (response.ok) {
-                        console.log(`✅ SUCCÈS ! Connecté via ${config.version}/${config.model}`);
-                        const json = await response.json();
-                        return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
-                    } else {
-                        // 404 : Ce modèle/version n'existe pas pour cette clé -> On essaye le suivant
-                        if (response.status === 404) continue; 
-                        
-                        // 429 (Quota) ou 403 (Interdit) -> On change de clé
-                        if (response.status === 429 || response.status === 403) {
-                            console.warn("Clé bloquée/épuisée, passage à la suivante...");
-                            break; 
-                        }
-                        throw new Error(`Erreur HTTP ${response.status}`);
-                    }
-                } catch (e) { 
-                    // Erreur réseau -> On continue
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(`Erreur ${response.status}: ${errData.error?.message || 'Inconnue'}`);
                 }
+
+                const json = await response.json();
+                return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
+
+            } catch (e) { 
+                console.warn(`Echec Clé ${i+1}: ${e.message}`); 
             }
         }
-        throw new Error("Aucune combinaison n'a fonctionné.");
+        throw new Error("Toutes les clés ont échoué.");
     }
 
     function startExercise() {
