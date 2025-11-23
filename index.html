@@ -106,13 +106,8 @@
     import { THEMES, PRIORITY_VERBS } from './themes.js';
     import { PROMPT_TEMPLATES, renderExerciseContent, checkAnswer } from './exercises.js';
 
-    const API_KEYS = [
-        'AIzaSyA0HQlzOrz7eN_prymlJ_RWNEGr4xknOas', 
-        'AIzaSyAMl-5LHPC-aGW5XWXDXYISz3sGq7NSXrE',
-        'AIzaSyC_j7DDSSFYbJ5GWf-OX2bia_AoV8KD0GE'
-    ];
-    
-    // REVENONS AU MODÈLE STANDARD QUI FONCTIONNAIT
+    // --- CONFIGURATION : UNE SEULE CLÉ NOUVELLE ET PROPRE ---
+    const API_KEY = 'AIzaSyAt8OXazJ1rByPSGFFb5mAu3m4iCgpQM_0';
     const MODEL_NAME = 'gemini-1.5-flash';
     
     const STORAGE_KEY = 'eleve_progression';
@@ -217,7 +212,7 @@
             type = "MIXTE"; 
 
             specialInstructions = `
-            RÔLE: Professeur Anglais 7ème Année Tunisie (Module 1 "Family & Daily Life").
+            RÔLE: Professeur Anglais 7ème Année Tunisie (Module 1).
             SUJETS SÉLECTIONNÉS: ${detail}.
             ${antiRepetitionPrompt}
             
@@ -285,7 +280,7 @@
             startExercise();
         } catch (err) {
             console.error(err);
-            alert("Erreur API. Mode simulation activé.");
+            alert(`Erreur API : ${err.message}. Vérifiez votre clé.`);
             currentQuestions = simulateData(type);
             startExercise();
         } finally {
@@ -294,39 +289,36 @@
         }
     });
 
-    // FONCTION DE CONNEXION API (RETOUR À LA VERSION SIMPLE ET EFFICACE)
+    // FONCTION DE CONNEXION API (VERSION SIMPLE ET EFFICACE AVEC UNE SEULE CLÉ)
     async function fetchWithFailover(prompt) {
-        for (let i = 0; i < API_KEYS.length; i++) {
-            try {
-                const apiKey = API_KEYS[i].trim();
-                console.log(`Essai Clé ${i + 1}`);
-                
-                // Utilisation de v1beta + gemini-1.5-flash (Configuration standard)
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ role: "user", parts: [{ text: prompt }] }],
-                        // IMPORTANT: On remet la config JSON qui aide le modèle
-                        generationConfig: { responseMimeType: "application/json" }
-                    })
-                });
+        const apiKey = API_KEY.trim();
 
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    throw new Error(`Erreur ${response.status}: ${errData.error?.message || 'Inconnue'}`);
-                }
+        // Le modèle le plus stable et standard
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
+        
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ role: "user", parts: [{ text: prompt }] }],
+                    generationConfig: { responseMimeType: "application/json" }
+                })
+            });
 
-                const json = await response.json();
-                return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
-
-            } catch (e) { 
-                console.warn(`Echec Clé ${i+1}: ${e.message}`); 
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                // Si 404/403/400, on lance l'erreur pour activer la simulation
+                throw new Error(`Erreur ${response.status}: ${errData.error?.message || 'Inconnue'}`);
             }
+
+            const json = await response.json();
+            return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
+
+        } catch (e) { 
+            // Lance l'erreur pour la gestion du mode simulation
+            throw new Error(`Connexion échouée. ${e.message}`);
         }
-        throw new Error("Toutes les clés ont échoué.");
     }
 
     function startExercise() {
