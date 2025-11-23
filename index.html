@@ -111,8 +111,7 @@
         'AIzaSyAMl-5LHPC-aGW5XWXDXYISz3sGq7NSXrE',
         'AIzaSyC_j7DDSSFYbJ5GWf-OX2bia_AoV8KD0GE'
     ];
-    // MODEL_NAME CORRIGÉ : 1.5-flash est le standard gratuit actuel
-    const MODEL_NAME = 'gemini-1.5-flash'; 
+    const MODEL_NAME = 'gemini-1.5-flash';
     const STORAGE_KEY = 'eleve_progression';
     const MASTERED_KEY = 'eleve_mastered_items';
 
@@ -231,17 +230,15 @@
             
             INSTRUCTIONS PAR SUJET:
             1. SI "Vocabulaire (Traduction)": Génère 5 items. TYPE JSON: vocabulaire_trad. Content: Mot anglais. Options: 3 mots arabes.
-            
             2. SI "Language":
                - Pour "Put in right tense": Utilise "remplir_les_blancs".
                - Pour "Circle option": Utilise "choix_multiple".
                - Pour "Functions": Utilise "choix_multiple". Content: La phrase. Options: Les fonctions (Greeting, etc).
-            
             3. SI "Listening": Génère 5 items. TYPE JSON: listening.
-            
             4. SI "Spelling": Génère 5 items. TYPE JSON: remettre_en_ordre.
-            
             5. SI "EXAMEN RÉVISION": Génère un mix de 5 questions variées.
+            
+            IMPORTANT: Assigne le champ "type" correct dans le JSON pour chaque question.
             `;
 
         } else {
@@ -409,7 +406,7 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
     }
 
-    // --- NAVIGATION CORRIGÉE : Nouvelle Session conserve les choix ---
+    // FONCTION DE NAVIGATION CORRIGÉE
     window.newSession = function() {
         document.getElementById('result-screen').classList.add('hidden');
         document.getElementById('exercise-screen').classList.add('hidden');
@@ -441,4 +438,3 @@
 
 </body>
 </html>
-
