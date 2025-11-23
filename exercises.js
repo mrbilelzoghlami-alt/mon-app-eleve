@@ -1,19 +1,20 @@
 // exercises.js
+// Gestion de l'affichage et de la correction
 
 export const PROMPT_TEMPLATES = {
-    remplir_les_blancs: "Génère 5 phrases. 1 SEUL TROU PAR PHRASE. Insère l'indice entre parenthèses avant le trou.",
-    choix_multiple: "Génère 5 questions QCM.",
-    vrai_faux: "Génère 5 affirmations Vrai/Faux.",
-    // MODIFICATION ICI : Demande explicite des indices FR/AR
-    remettre_en_ordre: "Génère 5 mots mélangés. DANS L'INSTRUCTION, AJOUTE LA TRADUCTION (FR + AR) COMME INDICE.",
-    listening: "Génère 5 items audio.",
-    vocabulaire_trad: "Génère 5 mots en anglais. Les options sont en Arabe."
+    remplir_les_blancs: "Génère 5 phrases. Pour chaque espace vide, utilise le code %BLANK%.",
+    choix_multiple: "Génère 5 questions. NE PAS UTILISER DE TROUS (%BLANK%). Pose une question complète.",
+    vrai_faux: "Génère 5 affirmations.",
+    remettre_en_ordre: "Génère 5 phrases ou mots à réordonner.",
+    listening: "Génère 5 items audio."
 };
 
 // Synthèse vocale
 function speakText(text) {
     if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(text);
+        // Nettoyage du texte (enlève les %BLANK% ou caractères bizarres avant de lire)
+        const cleanText = String(text).replace(/%BLANK%/g, "blank").replace(/[^a-zA-Z0-9\s\?\!\.]/g, "");
+        const utterance = new SpeechSynthesisUtterance(cleanText);
         utterance.lang = 'en-GB'; 
         utterance.rate = 0.8; 
         window.speechSynthesis.speak(utterance);
@@ -49,22 +50,27 @@ export function renderExerciseContent(q, idx, containerDiv) {
         }, 100);
     } 
     
-    // --- TYPE SAISIE ---
+    // --- TYPE SAISIE (Language) ---
     else if (q.type === 'remplir_les_blancs') {
         html += `<p><strong>Question ${idx + 1}:</strong> ${q.instruction}</p>`;
-        // Sécurité : S'assurer qu'il n'y a qu'un seul input par phrase pour éviter les bugs d'affichage
-        const contentWithInput = q.content.replace(/%BLANK%/g, `<input type="text" class="fill-in-blank" name="q${q.id}" autocomplete="off" style="border:none; border-bottom:2px solid #3f51b5; background:#e8eaf6; text-align:center; padding:5px; width:130px; font-weight:bold; font-size:1.1em; color:#333;">`);
+        // Conversion en string pour sécurité
+        let textContent = String(q.content);
+        
+        // Si l'IA a oublié les %BLANK% mais a mis des "...", on corrige
+        if (!textContent.includes('%BLANK%') && textContent.includes('...')) {
+            textContent = textContent.replace(/\.\.\./g, '%BLANK%');
+        }
+
+        const contentWithInput = textContent.replace(/%BLANK%/g, `<input type="text" class="fill-in-blank" name="q${q.id}" autocomplete="off" style="border:none; border-bottom:2px dashed #3f51b5; background:#f0f4ff; text-align:center; width:120px; font-weight:bold; color:#333; margin:0 5px;">`);
         html += `<p style="line-height:2em; font-size:1.2em">${contentWithInput}</p>`;
         containerDiv.innerHTML = html + `</div>`;
     }
     
-    // --- TYPE QCM (Classique + Vocabulaire) ---
+    // --- TYPE QCM ---
     else if (q.type === 'choix_multiple' || q.type === 'vrai_faux' || q.type === 'vocabulaire_trad') {
         html += `<p><strong>Question ${idx + 1}:</strong> ${q.instruction}</p>`;
-        // Si c'est du vocabulaire, on affiche le mot en gros
-        let styleContent = (q.type === 'vocabulaire_trad') ? "font-size:1.5em; text-align:center; color:#2c3e50; font-weight:bold;" : "font-weight:500; font-size:1.1em;";
-        
-        html += `<p style="${styleContent} margin-bottom:15px; background:#fff3e0; padding:10px; border-left:4px solid #ff9800;">${q.content}</p>`;
+        // Affichage propre de la question/mot
+        html += `<p style="font-weight:500; font-size:1.1em; margin-bottom:15px; background:#fff3e0; padding:10px; border-left:4px solid #ff9800;">${q.content}</p>`;
         
         if(q.options) {
             q.options.forEach(opt => {
@@ -76,15 +82,33 @@ export function renderExerciseContent(q, idx, containerDiv) {
         containerDiv.innerHTML = html + `</div>`;
     }
     
-    // --- TYPE PUZZLE ---
+    // --- TYPE PUZZLE (Correction split) ---
     else if (q.type === 'remettre_en_ordre') {
-        html += `<p><strong>Question ${idx + 1}:</strong> ${q.instruction}</p>`; 
-        // Note: L'instruction contiendra maintenant l'indice FR/AR généré par Gemini
-        
+        html += `<p><strong>Question ${idx + 1}:</strong> ${q.instruction}</p>`;
         const zoneId = `zone-${q.id}`;
-        let elements = q.content.includes(',') ? q.content.split(',') : q.content.split(' ');
-        // Nettoyage des espaces vides
-        elements = elements.map(s => s.trim()).filter(s => s !== "").sort(() => Math.random() - 0.5);
+        
+        // --- CORRECTION DU BUG SPLIT ---
+        // On force la conversion en Chaine de caractères (String) avant de manipuler
+        let rawContent = String(q.content); 
+        
+        let elements = [];
+        if (rawContent.includes(',')) {
+            elements = rawContent.split(',');
+        } else {
+            // Si pas de virgule, on découpe par espace, sauf si c'est un seul mot (Spelling)
+            if(rawContent.length < 15 && !rawContent.includes(' ')) {
+                 // C'est probablement un mot à épeler (ex: FAMILY), on split par lettre
+                 elements = rawContent.split('');
+            } else {
+                 elements = rawContent.split(' ');
+            }
+        }
+        
+        // Nettoyage et mélange
+        elements = elements
+            .map(s => s.trim())
+            .filter(s => s !== "")
+            .sort(() => Math.random() - 0.5);
         
         html += `
             <div id="${zoneId}" class="reorder-container">
@@ -106,9 +130,26 @@ export function checkAnswer(q) {
     let isCorrect = true;
 
     if (q.type === 'remplir_les_blancs') {
-        const input = document.querySelector(`input[name="q${q.id}"]`);
-        userRep = input ? input.value.trim() : "";
-        if(userRep.toLowerCase() !== String(q.correct).toLowerCase()) isCorrect = false;
+        const inputs = document.querySelectorAll(`input[name="q${q.id}"]`);
+        let userValues = [];
+        
+        // Gestion souple : si l'IA a donné une seule string "reponse", on la met dans un tableau
+        let correctAnswers = Array.isArray(q.correct) ? q.correct : [String(q.correct)];
+
+        // Si l'IA a donné une seule chaine mais avec des virgules "reponse1, reponse2"
+        if (correctAnswers.length === 1 && correctAnswers[0].includes(',')) {
+             correctAnswers = correctAnswers[0].split(',').map(s => s.trim());
+        }
+
+        inputs.forEach((input, index) => {
+            const val = input.value.trim();
+            userValues.push(val);
+            const expected = String(correctAnswers[index] || "").trim().toLowerCase();
+            if (val.toLowerCase() !== expected) isCorrect = false;
+        });
+        
+        userRep = userValues.join(', ');
+        if (!isCorrect) q.correct = correctAnswers.join(', '); // Pour l'affichage
     }
     else if (q.type === 'remettre_en_ordre') {
         const input = document.querySelector(`input[name="q${q.id}"]`);
@@ -120,8 +161,7 @@ export function checkAnswer(q) {
     else {
         const checked = document.querySelector(`input[name="q${q.id}"]:checked`);
         userRep = checked ? checked.value : "Aucune réponse";
-        // Comparaison simple string vs string
-        if(String(userRep).trim() !== String(q.correct).trim()) isCorrect = false;
+        if(String(userRep).trim().toLowerCase() !== String(q.correct).trim().toLowerCase()) isCorrect = false;
     }
 
     return { isCorrect, userRep };
@@ -141,6 +181,7 @@ function setupDragAndClickForId(zoneId) {
             
             const hiddenInput = container.querySelector('input[type="hidden"]');
             const words = Array.from(container.querySelector('.reorder-target').children).map(el => el.innerText);
+            // Espace si ce sont des mots, vide si ce sont des lettres (longueur 1)
             const separator = (words.length > 0 && words[0].length === 1) ? '' : ' '; 
             hiddenInput.value = words.join(separator); 
         });
