@@ -106,13 +106,21 @@
     import { THEMES, PRIORITY_VERBS } from './themes.js';
     import { PROMPT_TEMPLATES, renderExerciseContent, checkAnswer } from './exercises.js';
 
-    // --- VOTRE NOUVELLE CLÉ SÉCURISÉE ---
-    const KEY_PART_A = 'AIzaSyDPfLFXZPUG';
-    const KEY_PART_B = 'ZF0I1v4n58jICXNIJ5Awo74';
-    const API_KEY = KEY_PART_A + KEY_PART_B;
+    // --- VOTRE CLÉ ---
+    const K_PART_1 = 'AIzaSyDPfLFXZPUG';
+    const K_PART_2 = 'ZF0I1v4n58jICXNIJ5Awo74';
+    const API_KEY = K_PART_1 + K_PART_2;
 
     const STORAGE_KEY = 'eleve_progression';
     const MASTERED_KEY = 'eleve_mastered_items';
+
+    // 3 CONFIGURATIONS A TESTER DANS L'ORDRE
+    const CONFIGS = [
+        { url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent', name: 'Flash 1.5' },
+        { url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent', name: 'Flash Latest' },
+        { url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent', name: 'Pro 1.0' },
+        { url: 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', name: 'Pro V1' }
+    ];
 
     let currentQuestions = [];
     let wrongQuestions = [];
@@ -217,26 +225,21 @@
             SUJETS SÉLECTIONNÉS: ${detail}.
             ${antiRepetitionPrompt}
             
-            RÈGLES STRICTES DE COHÉRENCE (A SUIVRE IMPÉRATIVEMENT):
-            1. SI TYPE="remplir_les_blancs":
-               - La phrase DOIT contenir au moins un %BLANK%.
-               - Ne PAS fournir d'options de choix.
-            2. SI TYPE="choix_multiple":
-               - La phrase NE DOIT PAS contenir de %BLANK% (utilise "..." ou une question complète).
-               - Tu DOIS fournir un tableau "options".
-               - Le champ "correct" doit être égal à l'une des options.
+            RÈGLES STRICTES:
+            1. "remplir_les_blancs": La phrase DOIT avoir un %BLANK%. PAS d'options.
+            2. "choix_multiple": PAS de %BLANK%. 3 Options obligatoires.
             
             INSTRUCTIONS PAR SUJET:
-            1. SI "Vocabulaire (Traduction)": Génère 5 items. TYPE JSON: vocabulaire_trad. Content: Mot anglais. Options: 3 mots arabes.
-            2. SI "Language":
-               - Pour "Put in right tense": Utilise "remplir_les_blancs".
-               - Pour "Circle option": Utilise "choix_multiple".
-               - Pour "Functions": Utilise "choix_multiple". Content: La phrase. Options: Les fonctions (Greeting, etc).
-            3. SI "Listening": Génère 5 items. TYPE JSON: listening.
-            4. SI "Spelling": Génère 5 items. TYPE JSON: remettre_en_ordre.
-            5. SI "EXAMEN RÉVISION": Génère un mix de 5 questions variées.
+            1. Vocabulaire (Traduction): TYPE="vocabulaire_trad". Mot anglais -> Options Arabes.
+            2. Language: 
+               - Conjugaison: "remplir_les_blancs".
+               - Choix rapide: "choix_multiple".
+               - Functions: "choix_multiple".
+            3. Listening: TYPE="listening". Audio + QCM.
+            4. Spelling: TYPE="remettre_en_ordre". Lettres mélangées.
+            5. EXAMEN RÉVISION: Mix de 5 questions variées.
             
-            IMPORTANT: Assigne le champ "type" correct dans le JSON pour chaque question.
+            IMPORTANT: Assigne le champ "type" correct dans le JSON.
             `;
 
         } else {
@@ -290,39 +293,31 @@
         }
     });
 
-    // --- FONCTION DE CONNEXION SIMPLE ET EFFICACE ---
+    // FONCTION DE CONNEXION MULTI-CONFIG
     async function callGemini(prompt) {
-        // On essaie d'abord avec 'gemini-1.5-flash-latest' qui est souvent le plus dispo pour les nouvelles clés
-        let url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
-        
-        try {
-            let response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-            });
-
-            if (!response.ok) {
-                // Si ça échoue (404 ou autre), on tente le repli sur 'gemini-pro'
-                console.warn("Repli sur gemini-pro...");
-                url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`;
-                response = await fetch(url, {
+        for (const config of CONFIGS_TO_TRY) {
+            try {
+                console.log(`Tentative avec : ${config.name}`);
+                const url = `${config.url}?key=${API_KEY}`;
+                
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
-            }
 
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(`Erreur ${response.status}: ${errData.error?.message || 'Inconnue'}`);
+                if (response.ok) {
+                    console.log(`✅ SUCCÈS avec ${config.name}`);
+                    const json = await response.json();
+                    return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
+                } else {
+                    console.warn(`Echec ${config.name} : ${response.status}`);
+                }
+            } catch (e) { 
+                console.warn(`Erreur ${config.name}`, e); 
             }
-
-            const json = await response.json();
-            return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
-        } catch (e) {
-            throw e;
         }
+        throw new Error("Impossible de trouver un modèle compatible.");
     }
 
     function startExercise() {
