@@ -1,86 +1,98 @@
 // exercises.js
-// Gestion de l'affichage et de la correction
 
 export const PROMPT_TEMPLATES = {
-    remplir_les_blancs: "Génère 5 phrases. Pour chaque espace vide (%BLANK%), insère le mot ou le verbe de base entre parenthèses juste avant le trou.",
+    remplir_les_blancs: "Génère 5 phrases. 1 SEUL TROU PAR PHRASE. Insère l'indice entre parenthèses avant le trou.",
     choix_multiple: "Génère 5 questions QCM.",
     vrai_faux: "Génère 5 affirmations Vrai/Faux.",
-    remettre_en_ordre: "Génère 5 phrases mélangées ou mots mélangés.",
-    listening: "Génère 5 items audio."
+    // MODIFICATION ICI : Demande explicite des indices FR/AR
+    remettre_en_ordre: "Génère 5 mots mélangés. DANS L'INSTRUCTION, AJOUTE LA TRADUCTION (FR + AR) COMME INDICE.",
+    listening: "Génère 5 items audio.",
+    vocabulaire_trad: "Génère 5 mots en anglais. Les options sont en Arabe."
 };
 
-// Synthèse vocale (Text-to-Speech)
+// Synthèse vocale
 function speakText(text) {
     if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-GB'; // Accent britannique
+        utterance.lang = 'en-GB'; 
         utterance.rate = 0.8; 
         window.speechSynthesis.speak(utterance);
     } else {
-        alert("Ton appareil ne supporte pas l'audio.");
+        alert("Audio non supporté");
     }
 }
 
 export function renderExerciseContent(q, idx, containerDiv) {
     let html = `<div class="question-block">`;
     
-    // --- TYPE AUDIO (LISTENING) ---
+    // --- TYPE AUDIO ---
     if (q.type === 'listening') {
         html += `<p><strong>Question ${idx + 1}:</strong> ${q.instruction}</p>`;
         const btnId = `speak-btn-${q.id}`;
-        html += `<button type="button" id="${btnId}" class="speak-button" style="background:#ff9800; color:white; border:none; padding:8px 15px; border-radius:20px; cursor:pointer; margin-bottom:10px; font-weight:bold;">🔊 ÉCOUTER</button>`;
+        html += `<div style="text-align:center; margin:15px 0;">
+                    <button type="button" id="${btnId}" style="background:#ff9800; color:white; border:none; padding:10px 20px; border-radius:30px; cursor:pointer; font-size:1.1em; box-shadow: 0 4px 0 #e65100;">
+                    🔊 Écouter
+                    </button>
+                 </div>`;
         
-        if (q.options && q.options.length > 0) {
+        if (q.options) {
             q.options.forEach(opt => {
-                html += `<label style="display:block; margin:5px 0; padding:8px; background:#f5f5f5; border-radius:5px; cursor:pointer;"><input type="radio" name="q${q.id}" value="${opt}"> ${opt}</label>`;
+                html += `<label style="display:block; margin:8px 0; padding:12px; background:#f0f0f0; border-radius:8px; cursor:pointer; border:1px solid #ccc;">
+                            <input type="radio" name="q${q.id}" value="${opt}"> <span style="font-size:1.1em; margin-left:10px;">${opt}</span>
+                         </label>`;
             });
-        } else {
-             html += `
-                <label style="margin-right:15px"><input type="radio" name="q${q.id}" value="True"> True</label>
-                <label><input type="radio" name="q${q.id}" value="False"> False</label>
-            `;
         }
         containerDiv.innerHTML = html + `</div>`;
-        
         setTimeout(() => {
             const btn = document.getElementById(btnId);
             if(btn) btn.onclick = (e) => { e.preventDefault(); speakText(q.content); };
         }, 100);
     } 
-    // --- TYPE SAISIE (LANGUAGE / GRAMMAR) ---
+    
+    // --- TYPE SAISIE ---
     else if (q.type === 'remplir_les_blancs') {
         html += `<p><strong>Question ${idx + 1}:</strong> ${q.instruction}</p>`;
-        // Remplace %BLANK% par un input
-        // Note: S'il y a plusieurs %BLANK%, cela créera plusieurs inputs avec le même 'name'
-        const contentWithInput = q.content.replace(/%BLANK%/g, `<input type="text" class="fill-in-blank" name="q${q.id}" autocomplete="off" style="border:none; border-bottom:2px dashed #3f51b5; background:#f0f4ff; text-align:center; width:120px; font-weight:bold; color:#333; margin: 0 5px;">`);
-        html += `<p style="line-height:2em; font-size:1.1em">${contentWithInput}</p>`;
+        // Sécurité : S'assurer qu'il n'y a qu'un seul input par phrase pour éviter les bugs d'affichage
+        const contentWithInput = q.content.replace(/%BLANK%/g, `<input type="text" class="fill-in-blank" name="q${q.id}" autocomplete="off" style="border:none; border-bottom:2px solid #3f51b5; background:#e8eaf6; text-align:center; padding:5px; width:130px; font-weight:bold; font-size:1.1em; color:#333;">`);
+        html += `<p style="line-height:2em; font-size:1.2em">${contentWithInput}</p>`;
         containerDiv.innerHTML = html + `</div>`;
     }
-    // --- TYPE QCM (LANGUAGE / FUNCTIONS) ---
-    else if (q.type === 'choix_multiple' || q.type === 'vrai_faux') {
+    
+    // --- TYPE QCM (Classique + Vocabulaire) ---
+    else if (q.type === 'choix_multiple' || q.type === 'vrai_faux' || q.type === 'vocabulaire_trad') {
         html += `<p><strong>Question ${idx + 1}:</strong> ${q.instruction}</p>`;
-        html += `<p style="font-weight:500; margin-bottom:10px;">${q.content}</p>`;
+        // Si c'est du vocabulaire, on affiche le mot en gros
+        let styleContent = (q.type === 'vocabulaire_trad') ? "font-size:1.5em; text-align:center; color:#2c3e50; font-weight:bold;" : "font-weight:500; font-size:1.1em;";
+        
+        html += `<p style="${styleContent} margin-bottom:15px; background:#fff3e0; padding:10px; border-left:4px solid #ff9800;">${q.content}</p>`;
+        
         if(q.options) {
             q.options.forEach(opt => {
-                html += `<label style="display:block; margin:5px 0; cursor:pointer;"><input type="radio" name="q${q.id}" value="${opt}"> ${opt}</label>`;
+                html += `<label style="display:block; margin:8px 0; padding:10px; background:#fff; border:1px solid #ddd; border-radius:6px; cursor:pointer; transition:0.2s;">
+                            <input type="radio" name="q${q.id}" value="${opt}"> <span style="margin-left:8px; font-weight:500;">${opt}</span>
+                         </label>`;
             });
         }
         containerDiv.innerHTML = html + `</div>`;
     }
-    // --- TYPE PUZZLE (SPELLING) ---
+    
+    // --- TYPE PUZZLE ---
     else if (q.type === 'remettre_en_ordre') {
-        html += `<p><strong>Question ${idx + 1}:</strong> ${q.instruction}</p>`;
+        html += `<p><strong>Question ${idx + 1}:</strong> ${q.instruction}</p>`; 
+        // Note: L'instruction contiendra maintenant l'indice FR/AR généré par Gemini
+        
         const zoneId = `zone-${q.id}`;
         let elements = q.content.includes(',') ? q.content.split(',') : q.content.split(' ');
-        elements = elements.map(s => s.trim()).sort(() => Math.random() - 0.5);
+        // Nettoyage des espaces vides
+        elements = elements.map(s => s.trim()).filter(s => s !== "").sort(() => Math.random() - 0.5);
         
         html += `
             <div id="${zoneId}" class="reorder-container">
-                <div class="reorder-zone reorder-source" style="background:#f9f9f9; padding:10px; min-height:50px; display:flex; flex-wrap:wrap; gap:5px; border:1px dashed #ccc; border-radius:5px;">
-                    ${elements.map(w => `<span class="word-tag" style="background:white; border:1px solid #3f51b5; color:#3f51b5; padding:5px 10px; border-radius:15px; cursor:pointer; user-select:none;">${w}</span>`).join('')}
+                <div class="reorder-zone reorder-source" style="background:#fafafa; padding:15px; min-height:60px; display:flex; flex-wrap:wrap; gap:8px; border:2px dashed #ccc; border-radius:8px;">
+                    ${elements.map(w => `<span class="word-tag" style="background:white; border:2px solid #3f51b5; color:#3f51b5; padding:8px 15px; border-radius:20px; cursor:pointer; user-select:none; font-weight:bold; font-size:1.1em;">${w}</span>`).join('')}
                 </div>
-                <p style="font-size:0.8em; color:#666; margin:5px 0;">Cliquez pour déplacer 👇</p>
-                <div class="reorder-zone reorder-target" style="background:#e8eaf6; padding:10px; min-height:50px; display:flex; flex-wrap:wrap; gap:5px; border:2px solid #3f51b5; border-radius:5px;"></div>
+                <p style="text-align:center; color:#666; margin:5px 0;">⬇️</p>
+                <div class="reorder-zone reorder-target" style="background:#e8eaf6; padding:15px; min-height:60px; display:flex; flex-wrap:wrap; gap:8px; border:2px solid #3f51b5; border-radius:8px;"></div>
                 <input type="hidden" name="q${q.id}">
             </div>
         `;
@@ -89,63 +101,27 @@ export function renderExerciseContent(q, idx, containerDiv) {
     }
 }
 
-// --- FONCTION DE CORRECTION CORRIGÉE ET ROBUSTE ---
 export function checkAnswer(q) {
     let userRep = "";
-    let isCorrect = true; // On part du principe que c'est juste, et on cherche l'erreur
+    let isCorrect = true;
 
-    // CAS 1: REMPLIR LES BLANCS (Gère 1 ou plusieurs trous)
     if (q.type === 'remplir_les_blancs') {
-        // On récupère TOUS les inputs de cette question (il peut y en avoir plusieurs)
-        const inputs = document.querySelectorAll(`input[name="q${q.id}"]`);
-        let userValues = [];
-
-        // On s'assure que la réponse attendue est un tableau pour faciliter la comparaison
-        // Si l'API envoie une chaine simple "reponse", on en fait ["reponse"]
-        let correctAnswers = Array.isArray(q.correct) ? q.correct : [q.correct];
-
-        inputs.forEach((input, index) => {
-            const val = input.value.trim();
-            userValues.push(val);
-
-            // On compare la réponse de l'élève avec la réponse attendue à cet index
-            // On utilise String() pour éviter le crash .toLowerCase() sur null/undefined
-            const expected = String(correctAnswers[index] || "").trim().toLowerCase();
-            
-            if (val.toLowerCase() !== expected) {
-                isCorrect = false;
-            }
-        });
-
-        // Pour l'affichage, on joint les réponses de l'élève
-        userRep = userValues.join(', ');
-        
-        // Si on affiche la correction, on montre toutes les réponses attendues
-        if (!isCorrect) {
-             // On met à jour q.correct pour l'affichage final s'il a changé de format
-             q.correct = correctAnswers.join(', ');
-        }
+        const input = document.querySelector(`input[name="q${q.id}"]`);
+        userRep = input ? input.value.trim() : "";
+        if(userRep.toLowerCase() !== String(q.correct).toLowerCase()) isCorrect = false;
     }
-    // CAS 2: PUZZLE
     else if (q.type === 'remettre_en_ordre') {
         const input = document.querySelector(`input[name="q${q.id}"]`);
         userRep = input ? input.value : "";
-        
-        // Comparaison souple (sans virgules ni espaces multiples)
         const cleanUser = userRep.replace(/,/g, '').replace(/\s+/g, '').toLowerCase();
         const cleanCorrect = String(q.correct).replace(/,/g, '').replace(/\s+/g, '').toLowerCase();
-        
         if(cleanUser !== cleanCorrect) isCorrect = false;
     }
-    // CAS 3: QCM / LISTENING / VRAI FAUX
     else {
         const checked = document.querySelector(`input[name="q${q.id}"]:checked`);
         userRep = checked ? checked.value : "Aucune réponse";
-        
-        // Comparaison simple
-        if(String(userRep).toLowerCase() !== String(q.correct).toLowerCase()) {
-            isCorrect = false;
-        }
+        // Comparaison simple string vs string
+        if(String(userRep).trim() !== String(q.correct).trim()) isCorrect = false;
     }
 
     return { isCorrect, userRep };
