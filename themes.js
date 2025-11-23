@@ -1,5 +1,7 @@
 // themes.js
-export const PRIORITY_VERBS = "be, have got, get up, wash, dress, eat, drink, go, watch, play, listen, read, write, speak, enjoy, like, love, study, do, brush";
+// Structure du programme scolaire et listes de priorité
+
+export const PRIORITY_VERBS = "be, have got, get up, wash, dress, eat, drink, go, watch, play, listen, read, write, speak, enjoy, like, love, study, do, brush, sleep, visit";
 
 export const THEMES = {
     "Français": {
@@ -15,7 +17,7 @@ export const THEMES = {
     },
     "Anglais": {
         "Module 1 (7ème Année)": {
-            type: "module_mode", // Type spécial pour déclencher l'interface simplifiée
+            type: "module_mode", // Mode spécial : Interface simplifiée
             options: [
                 "Listening (Compréhension & Sons)",
                 "Language (Grammaire & Vocabulaire)",
