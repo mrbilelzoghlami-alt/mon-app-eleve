@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon App Éducative - Expert</title>
+    <title>Mon App Éducative - Universelle</title>
     <style>
         :root { --primary-color: #3f51b5; --secondary-color: #ffc107; --background-color: #f4f4f9; --text-color: #333; --success-color: #4CAF50; --error-color: #f44336; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--background-color); color: var(--text-color); margin: 0; padding: 0; display: flex; justify-content: center; padding: 20px; }
@@ -112,9 +112,9 @@
         'AIzaSyC_j7DDSSFYbJ5GWf-OX2bia_AoV8KD0GE'
     ];
     
-    // LISTE DES MODÈLES À TESTER EN CASCADE (Failover)
-    const MODELS_TO_TRY = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro', 'gemini-pro'];
-
+    // LISTE DE TOUS LES MODÈLES POSSIBLES (Failover Ultime)
+    const MODELS_TO_TRY = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro', 'gemini-1.0-pro', 'gemini-pro'];
+    
     const STORAGE_KEY = 'eleve_progression';
     const MASTERED_KEY = 'eleve_mastered_items';
 
@@ -285,7 +285,7 @@
             startExercise();
         } catch (err) {
             console.error(err);
-            alert("Toutes les tentatives de connexion ont échoué. Mode simulation activé.");
+            alert("Toutes les tentatives ont échoué (404/429). Mode simulation activé.");
             currentQuestions = simulateData(type);
             startExercise();
         } finally {
@@ -294,14 +294,14 @@
         }
     });
 
-    // FONCTION FAILOVER INTELLIGENTE (MULTI-MODÈLES)
+    // --- CŒUR DU SYSTEME : TEST MULTI-MODELES ---
     async function fetchWithFailover(prompt) {
-        // On boucle sur chaque CLÉ
+        // Boucle sur les CLÉS
         for (const apiKey of API_KEYS) {
-            // Pour chaque clé, on teste chaque MODÈLE
+            // Boucle sur les MODÈLES
             for (const model of MODELS_TO_TRY) {
                 try {
-                    console.log(`Tentative Clé ${apiKey.substr(0,5)}... avec Modèle: ${model}`);
+                    // console.log(`Test Clé: ...${apiKey.slice(-4)} | Modèle: ${model}`);
                     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
                     
                     const response = await fetch(url, {
@@ -311,28 +311,25 @@
                     });
 
                     if (response.ok) {
-                        console.log(">> SUCCÈS !");
+                        console.log(`✅ SUCCÈS ! Modèle utilisé : ${model}`);
                         const json = await response.json();
                         return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
                     } else {
-                        // Si 404 (Modèle non trouvé), on continue la boucle des modèles
                         if (response.status === 404) {
-                            console.warn(`Modèle ${model} non trouvé (404) pour cette clé.`);
+                            // Modèle introuvable -> On passe au modèle suivant
                             continue; 
                         }
-                        // Si 429 (Trop de requêtes), on sort de la boucle modèles pour changer de clé
-                        if (response.status === 429) {
-                            console.warn("Quota dépassé pour cette clé.");
+                        if (response.status === 429 || response.status === 403) {
+                            // Clé épuisée ou interdite -> On change de clé
                             break; 
                         }
-                        throw new Error(`Erreur ${response.status}`);
                     }
                 } catch (e) { 
-                    console.warn(`Echec: ${e.message}`); 
+                    // Erreur réseau -> On continue
                 }
             }
         }
-        throw new Error("Aucune combinaison Clé/Modèle n'a fonctionné.");
+        throw new Error("Aucun modèle n'a fonctionné avec aucune clé.");
     }
 
     function startExercise() {
