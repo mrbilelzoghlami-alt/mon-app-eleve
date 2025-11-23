@@ -12,8 +12,12 @@ export const PROMPT_TEMPLATES = {
 // Synthèse vocale
 function speakText(text) {
     if ('speechSynthesis' in window) {
-        // Nettoyage du texte (enlève les %BLANK% ou caractères bizarres avant de lire)
-        const cleanText = String(text).replace(/%BLANK%/g, "blank").replace(/[^a-zA-Z0-9\s\?\!\.]/g, "");
+        // On enlève les marqueurs de trou pour que la voix ne dise pas "pourcent blank pourcent"
+        const cleanText = String(text)
+            .replace(/%BLANK%/g, "blank")
+            .replace(/_+/g, "blank") // remplace les ____ par "blank" à l'oral
+            .replace(/[^a-zA-Z0-9\s\?\!\.]/g, "");
+            
         const utterance = new SpeechSynthesisUtterance(cleanText);
         utterance.lang = 'en-GB'; 
         utterance.rate = 0.8; 
@@ -50,18 +54,25 @@ export function renderExerciseContent(q, idx, containerDiv) {
         }, 100);
     } 
     
-    // --- TYPE SAISIE (Language) ---
+    // --- TYPE SAISIE (Language - CORRIGÉ) ---
     else if (q.type === 'remplir_les_blancs') {
         html += `<p><strong>Question ${idx + 1}:</strong> ${q.instruction}</p>`;
-        // Conversion en string pour sécurité
-        let textContent = String(q.content);
         
-        // Si l'IA a oublié les %BLANK% mais a mis des "...", on corrige
+        // --- LOGIQUE DE NETTOYAGE ET DÉTECTION DES TROUS ---
+        let textContent = String(q.content);
+
+        // 1. Si l'IA met des underscores "____" au lieu de %BLANK%, on corrige
+        textContent = textContent.replace(/_+/g, '%BLANK%');
+        
+        // 2. Si l'IA met des points "..." au lieu de %BLANK%, on corrige
+        // (seulement si elle n'a pas déjà mis %BLANK% ailleurs pour éviter les faux positifs)
         if (!textContent.includes('%BLANK%') && textContent.includes('...')) {
             textContent = textContent.replace(/\.\.\./g, '%BLANK%');
         }
 
+        // 3. Remplacement final par l'input HTML
         const contentWithInput = textContent.replace(/%BLANK%/g, `<input type="text" class="fill-in-blank" name="q${q.id}" autocomplete="off" style="border:none; border-bottom:2px dashed #3f51b5; background:#f0f4ff; text-align:center; width:120px; font-weight:bold; color:#333; margin:0 5px;">`);
+        
         html += `<p style="line-height:2em; font-size:1.2em">${contentWithInput}</p>`;
         containerDiv.innerHTML = html + `</div>`;
     }
@@ -69,8 +80,11 @@ export function renderExerciseContent(q, idx, containerDiv) {
     // --- TYPE QCM ---
     else if (q.type === 'choix_multiple' || q.type === 'vrai_faux' || q.type === 'vocabulaire_trad') {
         html += `<p><strong>Question ${idx + 1}:</strong> ${q.instruction}</p>`;
-        // Affichage propre de la question/mot
-        html += `<p style="font-weight:500; font-size:1.1em; margin-bottom:15px; background:#fff3e0; padding:10px; border-left:4px solid #ff9800;">${q.content}</p>`;
+        
+        // Si l'IA a mis des ____ dans un QCM, on les remplace par des ... pour faire plus propre
+        let cleanContent = String(q.content).replace(/%BLANK%/g, '...').replace(/_+/g, '...');
+
+        html += `<p style="font-weight:500; font-size:1.1em; margin-bottom:15px; background:#fff3e0; padding:10px; border-left:4px solid #ff9800;">${cleanContent}</p>`;
         
         if(q.options) {
             q.options.forEach(opt => {
@@ -82,29 +96,25 @@ export function renderExerciseContent(q, idx, containerDiv) {
         containerDiv.innerHTML = html + `</div>`;
     }
     
-    // --- TYPE PUZZLE (Correction split) ---
+    // --- TYPE PUZZLE ---
     else if (q.type === 'remettre_en_ordre') {
         html += `<p><strong>Question ${idx + 1}:</strong> ${q.instruction}</p>`;
         const zoneId = `zone-${q.id}`;
         
-        // --- CORRECTION DU BUG SPLIT ---
-        // On force la conversion en Chaine de caractères (String) avant de manipuler
+        // Conversion en String pour éviter le crash .split()
         let rawContent = String(q.content); 
         
         let elements = [];
         if (rawContent.includes(',')) {
             elements = rawContent.split(',');
         } else {
-            // Si pas de virgule, on découpe par espace, sauf si c'est un seul mot (Spelling)
             if(rawContent.length < 15 && !rawContent.includes(' ')) {
-                 // C'est probablement un mot à épeler (ex: FAMILY), on split par lettre
-                 elements = rawContent.split('');
+                 elements = rawContent.split(''); // Lettres
             } else {
-                 elements = rawContent.split(' ');
+                 elements = rawContent.split(' '); // Mots
             }
         }
         
-        // Nettoyage et mélange
         elements = elements
             .map(s => s.trim())
             .filter(s => s !== "")
@@ -133,23 +143,30 @@ export function checkAnswer(q) {
         const inputs = document.querySelectorAll(`input[name="q${q.id}"]`);
         let userValues = [];
         
-        // Gestion souple : si l'IA a donné une seule string "reponse", on la met dans un tableau
-        let correctAnswers = Array.isArray(q.correct) ? q.correct : [String(q.correct)];
-
-        // Si l'IA a donné une seule chaine mais avec des virgules "reponse1, reponse2"
-        if (correctAnswers.length === 1 && correctAnswers[0].includes(',')) {
-             correctAnswers = correctAnswers[0].split(',').map(s => s.trim());
+        // On transforme la réponse attendue en tableau, peu importe le format envoyé par l'IA
+        let correctAnswers = [];
+        if (Array.isArray(q.correct)) {
+            correctAnswers = q.correct;
+        } else {
+            // Si c'est une chaine avec virgules (ex: "gets up, likes")
+            if (String(q.correct).includes(',')) {
+                correctAnswers = String(q.correct).split(',').map(s => s.trim());
+            } else {
+                correctAnswers = [String(q.correct)];
+            }
         }
 
         inputs.forEach((input, index) => {
             const val = input.value.trim();
             userValues.push(val);
+            // Comparaison souple
             const expected = String(correctAnswers[index] || "").trim().toLowerCase();
             if (val.toLowerCase() !== expected) isCorrect = false;
         });
         
         userRep = userValues.join(', ');
-        if (!isCorrect) q.correct = correctAnswers.join(', '); // Pour l'affichage
+        // Mise à jour pour l'affichage de la correction
+        if (!isCorrect) q.correct = correctAnswers.join(', '); 
     }
     else if (q.type === 'remettre_en_ordre') {
         const input = document.querySelector(`input[name="q${q.id}"]`);
@@ -181,7 +198,6 @@ function setupDragAndClickForId(zoneId) {
             
             const hiddenInput = container.querySelector('input[type="hidden"]');
             const words = Array.from(container.querySelector('.reorder-target').children).map(el => el.innerText);
-            // Espace si ce sont des mots, vide si ce sont des lettres (longueur 1)
             const separator = (words.length > 0 && words[0].length === 1) ? '' : ' '; 
             hiddenInput.value = words.join(separator); 
         });
