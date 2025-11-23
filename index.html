@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon App Éducative - Universelle</title>
+    <title>Mon App Éducative - Expert</title>
     <style>
         :root { --primary-color: #3f51b5; --secondary-color: #ffc107; --background-color: #f4f4f9; --text-color: #333; --success-color: #4CAF50; --error-color: #f44336; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--background-color); color: var(--text-color); margin: 0; padding: 0; display: flex; justify-content: center; padding: 20px; }
@@ -112,8 +112,17 @@
         'AIzaSyC_j7DDSSFYbJ5GWf-OX2bia_AoV8KD0GE'
     ];
     
-    // LISTE DE TOUS LES MODÈLES POSSIBLES (Failover Ultime)
-    const MODELS_TO_TRY = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro', 'gemini-1.0-pro', 'gemini-pro'];
+    // LISTE ETENDUE ET VERSIONNÉE DES MODÈLES
+    // L'app va les tester un par un jusqu'à ce que ça marche
+    const MODELS_TO_TRY = [
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-001', // Version stable 1
+        'gemini-1.5-flash-002', // Version stable 2
+        'gemini-1.5-pro',
+        'gemini-1.5-pro-001',
+        'gemini-1.0-pro',       // Ancien standard
+        'gemini-pro'            // Alias classique
+    ];
     
     const STORAGE_KEY = 'eleve_progression';
     const MASTERED_KEY = 'eleve_mastered_items';
@@ -294,14 +303,16 @@
         }
     });
 
-    // --- CŒUR DU SYSTEME : TEST MULTI-MODELES ---
+    // FONCTION FAILOVER RENFORCÉE
     async function fetchWithFailover(prompt) {
         // Boucle sur les CLÉS
-        for (const apiKey of API_KEYS) {
+        for (let keyIndex = 0; keyIndex < API_KEYS.length; keyIndex++) {
+            let apiKey = API_KEYS[keyIndex].trim();
+            
             // Boucle sur les MODÈLES
             for (const model of MODELS_TO_TRY) {
                 try {
-                    // console.log(`Test Clé: ...${apiKey.slice(-4)} | Modèle: ${model}`);
+                    console.log(`Test Clé ${keyIndex + 1} | Modèle: ${model}`);
                     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
                     
                     const response = await fetch(url, {
@@ -315,21 +326,24 @@
                         const json = await response.json();
                         return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
                     } else {
+                        // Gestion spécifique des erreurs
                         if (response.status === 404) {
                             // Modèle introuvable -> On passe au modèle suivant
                             continue; 
                         }
                         if (response.status === 429 || response.status === 403) {
-                            // Clé épuisée ou interdite -> On change de clé
+                            // Clé épuisée ou interdite -> On sort de la boucle modèle pour changer de clé
+                            console.warn("Clé épuisée ou interdite, changement de clé...");
                             break; 
                         }
+                        throw new Error(`Erreur HTTP ${response.status}`);
                     }
                 } catch (e) { 
-                    // Erreur réseau -> On continue
+                    // Erreur réseau ou autre
                 }
             }
         }
-        throw new Error("Aucun modèle n'a fonctionné avec aucune clé.");
+        throw new Error("Aucune combinaison Clé/Modèle n'a fonctionné.");
     }
 
     function startExercise() {
