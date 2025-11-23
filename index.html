@@ -106,6 +106,7 @@
     import { THEMES, PRIORITY_VERBS } from './themes.js';
     import { PROMPT_TEMPLATES, renderExerciseContent, checkAnswer } from './exercises.js';
 
+    // --- VOS CLÉS API ---
     const API_KEYS = [
         'AIzaSyA0HQlzOrz7eN_prymlJ_RWNEGr4xknOas', 
         'AIzaSyAMl-5LHPC-aGW5XWXDXYISz3sGq7NSXrE',
@@ -115,13 +116,13 @@
     const STORAGE_KEY = 'eleve_progression';
     const MASTERED_KEY = 'eleve_mastered_items';
 
-    // CONFIGURATION DES COMBINAISONS (ENDPOINT + MODELE)
-    // L'app va tester ces combinaisons jusqu'à ce que l'une fonctionne
-    const CONFIGS_TO_TRY = [
-        { version: 'v1beta', model: 'gemini-1.5-flash' },
-        { version: 'v1beta', model: 'gemini-1.5-flash-latest' },
-        { version: 'v1beta', model: 'gemini-pro' },
-        { version: 'v1', model: 'gemini-pro' } // Le modèle "classique" qui marche souvent quand la beta échoue
+    // --- CONFIGURATIONS DE SECOURS (Version API + Nom Modèle) ---
+    // L'application testera ces adresses jusqu'à ce qu'une fonctionne (Code 200)
+    const ENDPOINTS_TO_TRY = [
+        { version: 'v1beta', model: 'gemini-1.5-flash' },        // Standard moderne
+        { version: 'v1beta', model: 'gemini-pro' },              // Classique beta
+        { version: 'v1',     model: 'gemini-pro' },              // STABLE (Vieux comptes)
+        { version: 'v1beta', model: 'gemini-1.5-flash-latest' }  // Dernier recours
     ];
 
     let currentQuestions = [];
@@ -200,7 +201,7 @@
         e.preventDefault();
         const btn = document.getElementById('start-btn');
         btn.disabled = true;
-        btn.textContent = "📡 Recherche de la meilleure connexion...";
+        btn.textContent = "📡 Recherche connexion stable...";
 
         const lang = langSelect.value;
         const theme = themeSelect.value;
@@ -300,16 +301,16 @@
         }
     });
 
-    // FONCTION FAILOVER INTELLIGENTE (MULTI-MODÈLES & MULTI-CLÉS)
+    // --- FONCTION FAILOVER ULTIME (Endpoints + Modèles) ---
     async function fetchWithFailover(prompt) {
-        // Boucle sur les CLÉS
         for (let keyIndex = 0; keyIndex < API_KEYS.length; keyIndex++) {
             let apiKey = API_KEYS[keyIndex].trim();
             
-            // Boucle sur les MODÈLES
-            for (const config of CONFIGS_TO_TRY) {
+            // On boucle sur les configurations (Version API + Modèle)
+            for (const config of ENDPOINTS_TO_TRY) {
                 try {
-                    console.log(`Test Clé ${keyIndex + 1} | Version: ${config.version} | Modèle: ${config.model}`);
+                    console.log(`Test Clé ${keyIndex + 1} | ${config.version}/${config.model}`);
+                    
                     // Construction de l'URL dynamique
                     const url = `https://generativelanguage.googleapis.com/${config.version}/models/${config.model}:generateContent?key=${apiKey}`;
                     
@@ -320,14 +321,18 @@
                     });
 
                     if (response.ok) {
-                        console.log(`✅ SUCCÈS ! Config utilisée : ${config.version}/${config.model}`);
+                        console.log(`✅ SUCCÈS ! Connecté via ${config.version}/${config.model}`);
                         const json = await response.json();
                         return JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
                     } else {
-                        // Si 404 (Modèle non trouvé), on passe à la config suivante
+                        // 404 : Ce modèle/version n'existe pas pour cette clé -> On essaye le suivant
                         if (response.status === 404) continue; 
-                        // Si 429/403, on change de clé
-                        if (response.status === 429 || response.status === 403) break; 
+                        
+                        // 429 (Quota) ou 403 (Interdit) -> On change de clé
+                        if (response.status === 429 || response.status === 403) {
+                            console.warn("Clé bloquée/épuisée, passage à la suivante...");
+                            break; 
+                        }
                         throw new Error(`Erreur HTTP ${response.status}`);
                     }
                 } catch (e) { 
@@ -335,7 +340,7 @@
                 }
             }
         }
-        throw new Error("Aucune combinaison Clé/Modèle n'a fonctionné.");
+        throw new Error("Aucune combinaison n'a fonctionné.");
     }
 
     function startExercise() {
